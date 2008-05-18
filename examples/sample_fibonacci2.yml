@@ -1,0 +1,27 @@
+calculate_rule:
+  priority: 2                               
+  when:  |
+    Fibonacci as :f1 where @value != -1 @&& @sequence as :s1,
+    Fibonacci as :f2 where @value != -1 @&& @sequence == @:s1 + 1 as :s2,
+    Fibonacci as :f3 where @value == -1 @&& @sequence == @:s2 + 1
+  then:  |
+    engine.retract context[:f1]
+    engine.retract context[:f3]
+    if(context[:f2].sequence == MAX_SEQUENCE)
+        engine.retract context[:f2]
+    else      
+        f3 = Fibonacci.new(context[:f2].sequence + 1, context[:f1].value + context[:f2].value)
+        engine.assert f3
+        puts "#{f3.sequence} == #{f3.value}"
+    end
+  
+build_rule:
+  priority: 1
+  when:  |
+    Fibonacci as :f1 where @value != -1 @&& @sequence as :s1,
+    Fibonacci as :f2 where @value != -1 @&& @sequence == @:s1 + 1 
+  then:  |
+    f3 = Fibonacci.new(context[:f2].sequence + 1, -1)
+    engine.assert f3
+
+    

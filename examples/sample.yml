@@ -1,0 +1,12 @@
+hello_rule:
+      when:  Message as :m where @status == :HELLO
+      then:  |
+                puts context[:m].message
+                context[:m].message = "Goodbye world"
+                context[:m].status = :GOODBYE
+                engine.modify context[:m]
+
+goodbye_rule:
+        when:  Message as :m where @status == :GOODBYE
+        then:  |  
+                  puts context[:m].message
