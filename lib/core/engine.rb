@@ -207,6 +207,10 @@ module Ruleby
       assert(object,&block)
     end
     
+    def retrieve(c)
+      facts.select {|f| f.kind_of?(c)}
+    end
+    
     # This method adds a new rule to the system.
     def assert_rule(rule)         
       @root = RootNode.new(@working_memory) if @root == nil

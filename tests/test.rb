@@ -12,4 +12,5 @@ require 'common'
 require 'test_duck_type'
 require 'test_self_reference'
 require 'test_re'
+require 'gets.rb'
 
