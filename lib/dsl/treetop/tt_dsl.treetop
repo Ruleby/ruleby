@@ -1,0 +1,105 @@
+grammar Ruleby
+  rule root
+	  defrule* {
+			def get_rules			
+				rs = []
+				elements.each do |e|
+				  rs << e.get_rule()
+				end
+				return rs
+			end
+		}
+	end
+	
+  rule defrule
+		'rule' space name space foreach space action {
+			def get_rule()				
+			  action_text = action.text_value.strip
+			  action_text.gsub!('do', '')
+			  action_text.gsub!('end', '')
+				return foreach.get_rule(name.text_value.strip, action_text.strip)
+			end
+		}
+	end
+	
+	rule name
+		[a-zA-Z] [a-zA-Z0-9]* 
+	end
+	
+  rule foreach
+		'foreach' space head space symbol {
+		def get_rule(name, action_text)
+			class_name = head.text_value.strip
+			clazz = eval(class_name)
+	  	tag = symbol.text_value.strip	
+			tag = tag[1, tag.size - 1]
+			return Ruleby::TreetopHelper.rule(name, [clazz, tag.to_sym], &action_text)
+		end
+	}
+  end	
+
+	
+  rule action
+		'do' space (!'end' .)* 'end' space?
+	end
+	
+	
+	
+	rule head
+	  [A-Z] [a-zA-Z]*  
+	end
+	rule symbol
+	 ':' [a-zA-Z]+
+	end
+	rule where
+	  'where'
+	end
+	rule method
+	  symbol '.' [a-z] [a-zA-Z0-9]* 
+	end
+	rule string
+		'\'' [a-zA-Z0-9]* '\''
+	end
+	rule value
+	  method / '-'* [0-9]+ / symbol / string
+	end
+	rule expression
+	  value space (equal space value) / (not_equal space value) / (symbol)
+	end
+	
+	rule clause
+		expression more:(and_sign clause)* {
+		def populate
+			more.elements.each do |e|
+				e.clause.populate
+			end
+		end
+	}
+	end	
+	rule and_sign
+	  'AND' 
+	end
+	rule not_equal
+	  '!=' 
+	end
+	rule equal
+	  '=='  
+	end
+	
+  rule space
+	  white+
+	end
+
+
+	rule white
+	  blank / eol
+	end
+
+	rule blank
+	  [ \t]
+	end
+
+	rule eol
+	  ("\r" "\n"?) / "\n"
+	end
+end

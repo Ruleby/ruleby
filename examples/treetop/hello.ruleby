@@ -1,0 +1,6 @@
+rule hello1 foreach Message :m do 
+	puts "Message1" 
+end
+rule hello2 foreach Message :m do 
+	puts "Message2" 
+end
