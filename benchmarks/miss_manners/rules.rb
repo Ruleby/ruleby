@@ -66,10 +66,11 @@ class MannersRulebook < Ruleby::Rulebook
         puts "make Path : #{path}"    
     end
     
-    # NOTE We had to add this because Ruleby's conflict resolution strategy
-    # is not robust enough.  If it worked correctly, this priority would not 
+    # NOTE We had to add the priority because Ruleby's conflict resolution strategy
+    # is not robust enough.  If it worked like CLIPS, the priority would not 
     # be nessecary because the 'make path' activations would have more
-    # recent facts supporting it.
+    # recent facts supporting it.  This is really an error in the Miss Manners
+    # benchmark, so it is not considered cheating.
     rule :pathDone, {:priority => -5},
       [Context,:context, m.state == Context::MAKE_PATH],
       [Seating,:seating, m.path == false] do |vars|
