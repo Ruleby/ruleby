@@ -214,7 +214,10 @@ module Ruleby
     
     # This method adds a new rule to the system.
     def assert_rule(rule)         
-      @root = RootNode.new(@working_memory) if @root == nil
+      if @root == nil
+        @root = RootNode.new(@working_memory) 
+        @root.reset_counter
+      end
       @root.assert_rule rule
     end
     
