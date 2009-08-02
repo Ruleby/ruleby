@@ -173,7 +173,7 @@ module Ruleby
     end
   end
 
-  # This is the core class of the library.  A new rule engine is create by 
+  # This is the core class of the library.  A new rule engine is created by 
   # instantiating it.  Each rule engine has one inference engine, one rule set
   # and one working memory.
   class Engine        

@@ -38,7 +38,6 @@ class HelloWorldRulebook < Rulebook
   end
 end
 
-
 engine :engine do |e|
   HelloWorldRulebook.new(e).rules
   e.assert Message.new(:HELLO, 'Hello World')

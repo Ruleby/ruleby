@@ -105,7 +105,9 @@ include Ruleby
 
 engine :engine do |e|
   
-  DiagnosisRulebook.new(e).rules
+  DiagnosisRulebook.new e do |r|
+    r.rules
+  end
 
   e.assert Patient.new('Fred',:none,true,false,false,false)
   e.assert Patient.new('Joe',:high,false,false,true,false)

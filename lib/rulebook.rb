@@ -17,13 +17,12 @@ require 'dsl/steel'
 module Ruleby
   class Rulebook
     include Ruleby
-    def initialize(engine, session={})
+    def initialize(engine, &block)
       @engine = engine
-      @session = session
+      yield self if block_given?
     end
   
     attr_reader :engine
-    attr_reader :session
     
     def assert(fact)
       @engine.assert fact
