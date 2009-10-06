@@ -233,7 +233,7 @@ module Ruleby
           tags[atom_builder.tag] = when_id
           methods[atom_builder.tag] = atom_builder.name
           atom_builder.build_atoms(tags,methods,when_id)
-        }.flatten
+        }.flatten || []
 
         if @bindings.empty?
           if @atom_type == :equals 
