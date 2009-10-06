@@ -235,8 +235,6 @@ module Ruleby
           atom_builder.build_atoms(tags,methods,when_id)
         }.flatten
 
-        puts atoms if atoms.size > 0
-
         if @bindings.empty?
           if @atom_type == :equals 
             return atoms << Core::EqualsAtom.new(@tag, @name, @deftemplate, @value)
