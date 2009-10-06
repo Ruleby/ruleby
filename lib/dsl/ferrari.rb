@@ -85,13 +85,13 @@ module Ruleby
               ab.deftemplate = deftemplate
               @tags[tag] = @when_counter
               @methods[tag] = ab.name
-              atoms.push ab.build_atom(@tags, @methods, @when_counter)   
+              atoms.push *ab.build_atoms(@tags, @methods, @when_counter)
             end
           elsif arg.kind_of? AtomBuilder
             arg.tag = GeneratedTag.new
             arg.deftemplate = deftemplate
             @methods[arg.tag] = arg.name
-            atoms.push arg.build_atom(@tags, @methods, @when_counter)
+            atoms.push *arg.build_atoms(@tags, @methods, @when_counter)
           elsif arg == false
             raise 'The != operator is not allowed.'
           else
@@ -183,12 +183,13 @@ module Ruleby
     class AtomBuilder
       attr_accessor :tag, :name, :bindings, :deftemplate, :block
       
-      def initialize(name)   
-        @name = name
+      def initialize(method_id)
+        @name = method_id
         @deftemplate = nil
-        @tag = nil
+        @tag = GeneratedTag.new
         @bindings = []
         @block = lambda {|x| true}
+        @child_atom_builders = []
       end
       
       def method_missing(method_id, *args, &block)
@@ -227,21 +228,29 @@ module Ruleby
         create_block value, lambda {|x,y| x =~ y}, lambda {|x| x =~ value}; self
       end 
       
-      def build_atom(tags,methods,when_id)               
+      def build_atoms(tags,methods,when_id)
+        atoms = @child_atom_builders.map { |atom_builder|
+          tags[atom_builder.tag] = when_id
+          methods[atom_builder.tag] = atom_builder.name
+          atom_builder.build_atoms(tags,methods,when_id)
+        }.flatten
+
+        puts atoms if atoms.size > 0
+
         if @bindings.empty?
           if @atom_type == :equals 
-            return Core::EqualsAtom.new(@tag, @name, @deftemplate, @value) 
+            return atoms << Core::EqualsAtom.new(@tag, @name, @deftemplate, @value)
           else
-            return Core::PropertyAtom.new(@tag, @name, @deftemplate, &@block) 
+            return atoms << Core::PropertyAtom.new(@tag, @name, @deftemplate, &@block)
           end
         end
         
         if references_self?(tags,when_id)
           bind_methods = @bindings.collect{ |bb| methods[bb.tag] }
-          Core::SelfReferenceAtom.new(@tag,@name,bind_methods,@deftemplate,&@block)
+          atoms << Core::SelfReferenceAtom.new(@tag,@name,bind_methods,@deftemplate,&@block)
         else
           bind_tags = @bindings.collect{ |bb| bb.tag }
-          Core::ReferenceAtom.new(@tag,@name,bind_tags,@deftemplate,&@block)
+          atoms << Core::ReferenceAtom.new(@tag,@name,bind_tags,@deftemplate,&@block)
         end
       end
       
@@ -264,6 +273,10 @@ module Ruleby
       def create_block(value, ref_block, basic_block)
         if value && value.kind_of?(BindingBuilder)
           @bindings = [value]
+          @block = ref_block
+        elsif value && value.kind_of?(AtomBuilder)
+          @child_atom_builders << value
+          @bindings = [BindingBuilder.new(value.tag)]
           @block = ref_block
         else
           @block = basic_block

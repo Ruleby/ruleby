@@ -27,15 +27,15 @@ module SelfReference
       rule [Message, :m, {m.message => :x}, m.status == b(:x)],
            [Context, :c] do |v|
         v[:c].inc :rule2
-      end   
+      end
+
+      # This is effectively the same as the rule above
+      rule [Message, :m, m.status == m.message],
+           [Context, :c] do |v|
+        v[:c].inc :rule3
+      end
       
-      # NOTE references the self class binding is not allowed yet
-      
-  #    rule 'LeTigreTest',
-  #      'exists? Message as :m where #status == #:m.message' do |r,v|
-  #        puts 'Success'
-  #    end
-  
+      # NOTE references the self class binding is not allowed yet  
   #    rule 'LeTigreTest',
   #      [Message, :m, m.status(:m, &c{|s,m| s == m.message})] do |r,v|
   #        puts 'Success'
@@ -59,6 +59,7 @@ module SelfReference
         
         assert_equal 1, ctx.get(:rule1)
         assert_equal 1, ctx.get(:rule2)
+        assert_equal 1, ctx.get(:rule3)
       end
     end
   end
