@@ -14,7 +14,7 @@ require 'rake/testtask'
 spec = Gem::Specification.new do |s|
 
     s.name              = "ruleby"
-    s.version           = "0.4"
+    s.version           = "0.5"
     s.authors           = [ "Joe Kutner", "Matt Smith" ]
     s.email             = 'matt@ruleby.org'
     s.homepage          = "http://ruleby.org"
@@ -24,9 +24,22 @@ spec = Gem::Specification.new do |s|
     #s.license           = "GPL3"
 
     s.require_paths     = [ "lib" ]
-    s.autorequire       = "ruleby"
     s.test_file         = "tests/test.rb"
     s.has_rdoc          = true
+    s.rubyforge_project = 'ruleby'
+    s.description = <<EOF
+Ruleby is a rule engine written in the Ruby language. It is a system for executing a set 
+of IF-THEN statements known as production rules. These rules are matched to objects using 
+the forward chaining Rete algorithm. Ruleby provides an internal Domain Specific Language 
+(DSL) for building the productions that make up a Ruleby program.
+
+Release Notes for Version 0.5
+* reset the TerminalNode.counter when initializing the RootNode.  Thanks to Shashank for the patch.
+* added InitialFact so that NotPatterns can be put at the front of a rule [#1 status:resolved]
+* Improved rule assertion so that rules can be added after facts have been asserted [#9 state:resolved]
+* Added retrieve method to engine, and a unit-test for it 
+EOF
+    
     #s.extra_rdoc_files  = [ 'README.txt' ]
     
     #[ 'other-gem', 'yet-another-gem' ].each do |d|
