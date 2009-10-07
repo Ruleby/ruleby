@@ -99,9 +99,18 @@ module Ruleby
     end
 
   end
+  
+  class InitialFactPattern < ObjectPattern
+    def initialize
+      deftemplate = DefTemplate.new InitialFact, :equals
+      htag = GeneratedTag.new
+      head = HeadAtom.new htag, deftemplate
+      super(head, [])
+    end
+  end
 
   class PatternFactory
-    
+    # TODO add some convenience methods for creating patterns
   end
 end
 end

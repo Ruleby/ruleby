@@ -182,6 +182,7 @@ module Ruleby
       @working_memory = wm
       @conflict_resolver = cr
       @wm_altered = false
+      assert InitialFact.new
     end
     
     def facts

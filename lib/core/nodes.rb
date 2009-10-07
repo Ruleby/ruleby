@@ -95,10 +95,16 @@ module Ruleby
       #  Returns a new node in the network that wraps the given pattern and 
       #  is above (i.e. it outputs to) the given node.
       def build_network(pattern, out_node, side=nil) 
-        if (pattern.kind_of?(ObjectPattern))            
-          atom_node = create_atom_nodes(pattern, out_node, side) 
-          #out_node.parent_nodes.push atom_node # only used to print network
-          return atom_node
+        if pattern.kind_of?(ObjectPattern)
+          if pattern.kind_of?(NotPattern) and (side==:left or !side)
+            # a NotPattern needs to be run through a NotNode, which is a beta node.
+            # So if the NotPattern is on the left (i.e. it is the first pattern),
+            # then we need to add a dummy pattern in front of it.
+            new_pattern = CompositePattern.new(InitialFactPattern.new, pattern)            
+            return build_network(new_pattern, out_node, side)
+          else 
+            return create_atom_nodes(pattern, out_node, side) 
+          end
         else  
           join_node = create_join_node(pattern, out_node, side)  
           build_network(pattern.left_pattern, join_node, :left)
@@ -116,7 +122,7 @@ module Ruleby
       #   side - if the out_node is a JoinNode, this marks the side 
       def create_atom_nodes(pattern, out_node, side)       
         # TODO refactor this method so it clear and concise
-        type_node = create_type_node(pattern)                
+        type_node = create_type_node(pattern)  
         forked = false
         parent_atom = pattern.atoms[0]
         parent_node = type_node
@@ -163,10 +169,7 @@ module Ruleby
       #   out_node - the Node that this pattern is directly above in thw network
       #   side - if the out_node is a JoinNode, this marks the side 
       def create_join_node(pattern, out_node, side)      
-        join_node = nil
-        if (pattern.left_pattern.kind_of?(NotPattern))  
-          raise 'NotPatterns at the being of a rule are not yet supported'
-        elsif (pattern.right_pattern.kind_of?(NotPattern))  
+        if (pattern.right_pattern.kind_of?(NotPattern))  
           join_node = NotNode.new 
         else
           join_node = JoinNode.new    

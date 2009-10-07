@@ -149,6 +149,10 @@ module Ruleby
       DefTemplate === df && df.clazz == @clazz && df.mode == @mode
     end    
   end
+  
+  class AtomFactory
+    # TODO add some convenience methods for creating atoms
+  end
 
 end
 end
