@@ -13,4 +13,5 @@ require 'test_duck_type'
 require 'test_self_reference'
 require 'test_re'
 require 'gets.rb'
+require 'test_assert_facts'
 

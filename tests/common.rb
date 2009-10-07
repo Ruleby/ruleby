@@ -10,6 +10,10 @@ class Context
     @counts[key] += 1    
   end
   
+  def set(key,value)
+    @counts[key] = value
+  end
+  
   def get(key)
     @counts[key]
   end

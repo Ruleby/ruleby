@@ -28,9 +28,8 @@ module Ruleby
     # This method is invoked when a new rule is added to the system.  The
     # rule is processed and the appropriate nodes are added to the network.
     def assert_rule(rule)
-      pattern = rule.pattern       
       terminal_node = TerminalNode.new rule  
-      build_network(pattern, terminal_node)             
+      build_network(rule.pattern, terminal_node)             
       @terminal_nodes.push terminal_node
     end    
             
@@ -232,9 +231,10 @@ module Ruleby
       # working memory.  It can be a costly operation because it iterates over 
       # EVERY fact in working memory.  It should only be used when a new rule is 
       # added.
-      def compare_to_wm(type_node)              
+      def compare_to_wm(type_node)            
         @working_memory.each_fact do |fact| 
-          type_node.assert MatchContext.new(fact)
+          type_node.retract fact
+          type_node.assert fact
         end
       end  
   end
