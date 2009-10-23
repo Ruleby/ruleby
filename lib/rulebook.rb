@@ -71,7 +71,7 @@ module Ruleby
     end
     
     def binding(variable_name)
-      b
+      b variable_name
     end
     
     def c(&block)
