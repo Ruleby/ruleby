@@ -22,56 +22,56 @@ module OrPatterns
       rule OR([Message, m.message == :HELLO], [Message, m.message == :GOODBYE]), [Context, :c] do |v|
         v[:c].inc :rule1
       end  
-      # 
+      
       # rule OR([Message, m.message == :HELLO], [Message, m.message == :FOOBAR]), [Context, :c] do |v|
       #   v[:c].inc :rule2
       # end 
-      # 
-      # rule OR([Message, m.message == :HELLO], [Message, m.message == :HELLO]), [Context, :c] do |v|
-      #   # this doesn't work yet, but we need it to.
-      #   v[:c].inc :rule3
-      # end 
-      # 
-      # rule OR([Message, m.message == :FOO], [Message, m.message == :BAR]), [Context, :c] do |v|
-      #   v[:c].inc :rule4
-      # end
-      #   
+      
+      rule OR([Message, m.message == :HELLO], [Message, m.message == :HELLO]), [Context, :c] do |v|
+        # this doesn't work yet, but we need it to.
+        v[:c].inc :rule3
+      end 
+      
+      rule OR([Message, m.message == :FOO], [Message, m.message == :BAR]), [Context, :c] do |v|
+        v[:c].inc :rule4
+      end
+         
       # rule OR([Message, m.message == :FOOBAR], [Message, m.message == :GOODBYE]), [Context, :c] do |v|
       #   v[:c].inc :rule5
       # end   
-      # 
-      # rule AND([Message, m.message == :HELLO], [Message, m.message == :GOODBYE]), [Context, :c] do |v|
-      #   # no reason for this to work - its verbose, just checking.
-      #   v[:c].inc :rule6
-      # end   
-      # 
+      
+      rule AND([Message, m.message == :HELLO], [Message, m.message == :GOODBYE]), [Context, :c] do |v|
+        # no reason for this to work - its verbose, just checking.
+        v[:c].inc :rule6
+      end   
+      
       # rule AND([Message, m.message == :FOOBAR], [Message, m.message == :GOODBYE]), [Context, :c] do |v|
       #   # no reason for this to work - its verbose, just checking.
       #   v[:c].inc :rule7
       # end    
-      # 
-      # rule OR(AND([Message, m.message == :HELLO], [Message, m.message == :GOODBYE])), [Context, :c] do |v|
-      #   v[:c].inc :rule8
-      # end   
-      # 
-      # rule OR([Message, m.message == :HELLO]), [Context, :c] do |v|
-      #   v[:c].inc :rule9
-      # end     
-      # 
+      
+      rule OR(AND([Message, m.message == :HELLO], [Message, m.message == :GOODBYE])), [Context, :c] do |v|
+        v[:c].inc :rule8
+      end   
+      
+      rule OR([Message, m.message == :HELLO]), [Context, :c] do |v|
+        v[:c].inc :rule9
+      end     
+      
       # rule OR(AND([Message, m.message == :HELLO], [Message, m.message == :GOODBYE]), [Message, m.message == :FOOBAR]), [Context, :c] do |v|
       #   v[:c].inc :rule10
       # end   
-      # 
-      # rule AND([Message, m.message == :HELLO], [Context, :c]) do |v|
-      #   # no reason for this to work - its verbose.  But it does work, so just checking.
-      #   v[:c].inc :rule11
-      # end   
-      # 
-      # rule AND([Message, m.message == :FOOBAR], [Context, :c]) do |v|
-      #   # no reason for this to work - its verbose.  But it does work, so just checking.
-      #   v[:c].inc :rule12
-      # end
-      # 
+      
+      rule AND([Message, m.message == :HELLO], [Context, :c]) do |v|
+        # no reason for this to work - its verbose.  But it does work, so just checking.
+        v[:c].inc :rule11
+      end   
+      
+      rule AND([Message, m.message == :FOOBAR], [Context, :c]) do |v|
+        # no reason for this to work - its verbose.  But it does work, so just checking.
+        v[:c].inc :rule12
+      end
+      
       # rule OR([Message, :f, m.message == :FOOBAR], [Message, :g, m.message == :GOODBYE]), [Context, :c] do |v|
       #   if v[:f]
       #     # :f should be null
@@ -96,6 +96,18 @@ module OrPatterns
       # rule OR([[Message, m.message == :HELLO], [Message, m.message == :GOODBYE]], OR([Message, m.message == :FOOBAR], [Message, m.message == :THIRD])), [Context, :c] do |v|
       #   v[:c].inc :rule16
       # end
+      
+      rule OR(AND(OR([Message, m.message == :HELLO], [Message, m.message == :GOODBYE]), [Message, m.message == :THIRD])), [Context, :c] do |v|
+        v[:c].inc :rule17
+      end
+      
+      rule OR(AND(OR(OR([Message, m.message == :HELLO])))), [Context, :c] do |v|
+        v[:c].inc :rule18
+      end
+
+      rule OR(AND(OR(OR([Message, m.message == :FOOBAR])))), [Context, :c] do |v|
+        v[:c].inc :rule19
+      end
     end
   end
     
@@ -109,21 +121,24 @@ module OrPatterns
         e.assert Message.new(:HELLO, :GOODBYE)
         e.assert Message.new(:HELLO, :THIRD)
         e.match          
+        assert_equal 0, ctx.get(:rule19)
+        assert_equal 1, ctx.get(:rule18)
+        assert_equal 1, ctx.get(:rule17)
         # assert_equal 1, ctx.get(:rule16) 
         # assert_equal 0, ctx.get(:rule15)
         # assert_equal 1, ctx.get(:rule14)
         # assert_equal 1, ctx.get(:rule13b)
         # assert_equal 0, ctx.get(:rule13a)
-        # assert_equal 0, ctx.get(:rule12)
-        # assert_equal 1, ctx.get(:rule11)
+        assert_equal 0, ctx.get(:rule12)
+        assert_equal 1, ctx.get(:rule11)
         # assert_equal 1, ctx.get(:rule10)
-        # assert_equal 1, ctx.get(:rule9)
-        # assert_equal 1, ctx.get(:rule8)
+        assert_equal 1, ctx.get(:rule9)
+        assert_equal 1, ctx.get(:rule8)
         # assert_equal 0, ctx.get(:rule7)
-        # assert_equal 1, ctx.get(:rule6)
+        assert_equal 1, ctx.get(:rule6)
         # assert_equal 1, ctx.get(:rule5)
-        # assert_equal 0, ctx.get(:rule4)
-        # assert_equal 0, ctx.get(:rule3) # todo should be 1
+        assert_equal 0, ctx.get(:rule4)
+        assert_equal 1, ctx.get(:rule3)
         # assert_equal 1, ctx.get(:rule2)
         assert_equal 1, ctx.get(:rule1) 
       end

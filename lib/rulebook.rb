@@ -44,7 +44,7 @@ module Ruleby
         r.rule name, &block
       else
         i = args[0].kind_of?(Hash) ? 1 : 0
-        if args[i].kind_of? Array
+        if [Array, Ruleby::Ferrari::OrBuilder, Ruleby::Ferrari::AndBuilder].include? args[i].class
           # use ferrari DSL
           r = Ferrari::RulebookHelper.new @engine
           r.rule name, *args, &block
@@ -80,6 +80,14 @@ module Ruleby
     
     def condition(&block)
       return lambda(&block)
+    end
+    
+    def OR(*args)
+      Ruleby::Ferrari::OrBuilder.new args
+    end
+    
+    def AND(*args)
+      Ruleby::Ferrari::AndBuilder.new args
     end
     
     def __eval__(x)

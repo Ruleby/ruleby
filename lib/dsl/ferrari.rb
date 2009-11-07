@@ -23,11 +23,7 @@ module Ruleby
         
         r = RuleBuilder.new name
         args.each do |arg|
-          if arg.kind_of? Array
-            r.when(*arg)
-          else
-            raise 'Invalid condition.  All or none must be Arrays.'
-          end
+          r.when(arg)
         end
         
         r.then(&block)
@@ -50,8 +46,59 @@ module Ruleby
         @methods = {}
         @when_counter = 0
       end   
+      
+      def when(arg)
+        p = do_that_thing(arg)
+        @pattern = @pattern ? Core::AndPattern.new(@pattern, p) : p 
+      end
+      
+      def then(&block)
+        @action = Core::Action.new(&block)  
+        @action.name = @name
+        @action.priority = @priority
+      end
+          
+      def priority
+        return @priority
+      end
+      
+      def priority=(p)
+        @priority = p
+        @action.priority = @priority
+      end 
         
-      def when(*args)      
+      def build_rule
+        Core::Rule.new @name, @pattern, @action, @priority
+      end
+
+      private
+      def parse_or_condition(conditions)
+        or_pattern = nil
+        conditions.each do |c|
+          p = do_that_thing(c)
+          or_pattern = or_pattern ? Core::OrPattern.new(or_pattern, p) : p
+        end
+        return or_pattern
+      end
+
+      def parse_condition(c)
+        if c.kind_of? Array
+          build_pattern(*c)
+        elsif c.kind_of? AndBuilder
+          and_pattern = nil
+          c.conditions.each do |sub_condition|
+            p = parse_condition(sub_condition)
+            and_pattern = and_pattern ? Core::AndPattern.new(and_pattern, p) : p
+          end
+          return and_pattern;
+        elsif c.kind_of? OrBuilder
+          parse_or_condition(c.conditions)
+        else
+          raise "Invalid condition.  #{c}"
+        end
+      end
+      
+      def build_pattern(*args)
         clazz = AtomBuilder === args[0] ? nil : args.shift
         is_not = false
         mode = :equals
@@ -106,28 +153,7 @@ module Ruleby
           p = mode==:inherits ? Core::InheritsPattern.new(head, atoms) : 
                                 Core::ObjectPattern.new(head, atoms)
         end
-        @pattern = @pattern ? Core::AndPattern.new(@pattern, p) : p
-        
-        return nil
-      end
-      
-      def then(&block)
-        @action = Core::Action.new(&block)  
-        @action.name = @name
-        @action.priority = @priority
-      end
-          
-      def priority
-        return @priority
-      end
-      
-      def priority=(p)
-        @priority = p
-        @action.priority = @priority
-      end 
-        
-      def build_rule
-        Core::Rule.new @name, @pattern, @action, @priority
+        return p
       end
     end
     
@@ -285,6 +311,20 @@ module Ruleby
     class NotOperatorBuilder < AtomBuilder
       def ==(value)
         create_block value, lambda {|x,y| x != y}, lambda {|x| x != value}; self
+      end
+    end
+
+    class OrBuilder 
+      attr_reader :conditions
+      def initialize(conditions)
+        @conditions = conditions
+      end
+    end
+
+    class AndBuilder
+      attr_reader :conditions
+      def initialize(conditions)
+        @conditions = conditions
       end
     end
   end
