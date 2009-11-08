@@ -48,7 +48,7 @@ module Ruleby
       end   
       
       def when(arg)
-        p = do_that_thing(arg)
+        p = parse_condition(arg)
         @pattern = @pattern ? Core::AndPattern.new(@pattern, p) : p 
       end
       
@@ -75,7 +75,7 @@ module Ruleby
       def parse_or_condition(conditions)
         or_pattern = nil
         conditions.each do |c|
-          p = do_that_thing(c)
+          p = parse_condition(c)
           or_pattern = or_pattern ? Core::OrPattern.new(or_pattern, p) : p
         end
         return or_pattern
