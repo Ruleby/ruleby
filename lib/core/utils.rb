@@ -142,12 +142,48 @@ module Ruleby
         return s + ")"
       end
     end
+    
+    class ManyToOneHash < Hash
+      def initialize() 
+        @vals = {}
+        @vals.default = []
+      end    
+      
+      def []=(keys,value)
+        keys.each do |key|
+          old_val = @vals.delete(self[key])
+          super(key,value)   
+        end  
+        @vals[value] = keys
+        return self
+      end
+      
+      def values
+        # ack, this slows things down
+        super.uniq 
+        
+        # this is even slower.. maybe I have to make my own optimized collection of values    
+        #@vals.keys
+      end
+            
+      def delete(key)
+        value = self[key]
+        alt_keys = @vals.delete(value)
+        if (alt_keys)
+          # not sure why alt_keys would be null
+          alt_keys.each do |alt_key|
+            super(alt_key)
+          end
+        end
+        return value
+      end
+    end
   
     # This class is used when we need to have a Hash where keys and values are 
     # mapped many-to-many.  This class allows for quick access of both key and 
     # value.  It is similar to Multimap in C++ standard lib.
     # This thing is a mess (and barely works). It needs to be refactored.
-    class MultiHash
+    class ManyToManyHash
       def initialize(key=nil, values=[])
         @i = 0
         clear

@@ -543,8 +543,8 @@ module Ruleby
     
     def initialize
       super
-      @left_memory = {}
-      @right_memory = {} 
+      @left_memory = ManyToOneHash.new
+      @right_memory = ManyToOneHash.new
       @ref_nodes = []
     end
     
@@ -569,8 +569,8 @@ module Ruleby
       end
     end
     
-    def assert_right(context)
-      @right_memory[context.fact.id] = context
+    def assert_right(context)      
+      @right_memory[context.match.fact_ids] = context
       @left_memory.values.flatten.each do |left_context|
         mr = match_ref_nodes(left_context,context)      
         if (mr.is_match)
@@ -606,7 +606,7 @@ module Ruleby
         lm = @left_memory[context.fact.id]
         lm = [] unless lm      
         lm.push context
-        @left_memory[context.fact.id] = lm      
+        @left_memory[context.match.fact_ids] = lm      
         # QUESTION for a little while we were having trouble with duplicate 
         # contexts being added to the left_memory.  Double check that this is 
         # not happening
@@ -681,7 +681,7 @@ module Ruleby
     end
     
     def assert_right(context)                    
-      @right_memory[context.fact.id] = context
+      @right_memory[context.match.fact_ids] = context
       if @ref_nodes.empty?
         @left_memory.values.flatten.each do |left_context|
           propagate_retract_resolve(left_context.match)
@@ -723,7 +723,7 @@ module Ruleby
     def initialize(rule)
       super()
       @rule = rule
-      @activations = MultiHash.new  
+      @activations = ManyToManyHash.new  
     end
     attr_reader:activations
   

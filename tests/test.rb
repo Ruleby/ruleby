@@ -9,11 +9,11 @@
 # * Authors: John Mettraux
 #
 require 'common'
-# require 'duck_type'
-# require 'self_reference'
-# require 'regex'
-# require 'gets'
-# require 'assert_facts'
-# require 'not_patterns'
+require 'duck_type'
+require 'self_reference'
+require 'regex'
+require 'gets'
+require 'assert_facts'
+require 'not_patterns'
 require 'or_patterns'
 
