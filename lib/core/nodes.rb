@@ -171,8 +171,6 @@ module Ruleby
       def create_join_node(pattern, out_node, side)      
         if (pattern.right_pattern.kind_of?(NotPattern))  
           join_node = NotNode.new 
-        elsif pattern.right_pattern.kind_of?(OrPattern)
-          join_node = OrNode.new  
         else
           join_node = JoinNode.new  
         end
@@ -707,10 +705,6 @@ module Ruleby
       return true
     end
     private:match_ref_nodes
-  end
-  
-  class OrNode < JoinNode
-    
   end
   
   # This class represents the bottom node in the network.  There is a one to one

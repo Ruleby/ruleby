@@ -20,85 +20,83 @@ module Ruleby
     
       def rule(name, *args, &block) 
         options = args[0].kind_of?(Hash) ? args.shift : {}        
-        
-        r = RuleBuilder.new name
-        args.each do |arg|
-          r.when(arg)
+
+        parse_containers(*args).each do |containers|
+          r = RuleBuilder.new name
+          containers.each do |container|
+            if container.kind_of? Array
+              # if the first child is an array, we need to flatten things
+              if container[0].kind_of? Array
+                container.each do |inner_container|
+                  r.when(*inner_container)
+                end
+              else
+                r.when(*container)
+              end
+            end
+          end
+
+          r.then(&block)
+          r.priority = options[:priority] if options[:priority]
+
+          @engine.assert_rule(r.build_rule)
         end
-        
-        r.then(&block)
-        r.priority = options[:priority] if options[:priority]
-        
-        @engine.assert_rule(r.build_rule)
+      end     
+
+      private
+      def parse_containers(*args)
+        or_builders = []
+        conditions = []
+        args.each do |arg|
+          if arg.kind_of? Array
+            conditions << arg
+          elsif arg.kind_of? AndBuilder
+            conditions << arg.conditions
+          elsif arg.kind_of? OrBuilder
+            or_builders << arg
+          else
+            raise 'Invalid condition. Must be an OR, AND or an Array.'
+          end
+        end
+
+        rules = or_builders.empty? ? [conditions] : []
+
+        while !or_builders.empty?
+          or_builder = or_builders.pop          
+          parse_containers(*or_builder.conditions).each do |or_conditions|
+            or_conditions.each do |or_condition|                      
+               rule = []
+               rule.push or_condition
+
+               or_builders.each do |sub_or_builder|
+                 parse_containers(*sub_or_builder.conditions).each do |sub_or_condition|
+                   rule.push *sub_or_condition
+                 end
+               end
+
+               rule.push *conditions
+               rules << rule
+             end
+          end     
+        end
+        rules
       end
-      
     end
-    
+
     class RuleBuilder
-    
+
       def initialize(name, pattern=nil, action=nil, priority=0) 
         @name = name
         @pattern = pattern
         @action = action  
         @priority = priority            
-        
+
         @tags = {}
         @methods = {}
         @when_counter = 0
       end   
-      
-      def when(arg)
-        p = parse_condition(arg)
-        @pattern = @pattern ? Core::AndPattern.new(@pattern, p) : p 
-      end
-      
-      def then(&block)
-        @action = Core::Action.new(&block)  
-        @action.name = @name
-        @action.priority = @priority
-      end
-          
-      def priority
-        return @priority
-      end
-      
-      def priority=(p)
-        @priority = p
-        @action.priority = @priority
-      end 
-        
-      def build_rule
-        Core::Rule.new @name, @pattern, @action, @priority
-      end
 
-      private
-      def parse_or_condition(conditions)
-        or_pattern = nil
-        conditions.each do |c|
-          p = parse_condition(c)
-          or_pattern = or_pattern ? Core::OrPattern.new(or_pattern, p) : p
-        end
-        return or_pattern
-      end
-
-      def parse_condition(c)
-        if c.kind_of? Array
-          build_pattern(*c)
-        elsif c.kind_of? AndBuilder
-          and_pattern = nil
-          c.conditions.each do |sub_condition|
-            p = parse_condition(sub_condition)
-            and_pattern = and_pattern ? Core::AndPattern.new(and_pattern, p) : p
-          end
-          return and_pattern;
-        elsif c.kind_of? OrBuilder
-          parse_or_condition(c.conditions)
-        else
-          raise "Invalid condition.  #{c}"
-        end
-      end
-      
-      def build_pattern(*args)
+      def when(*args)      
         clazz = AtomBuilder === args[0] ? nil : args.shift
         is_not = false
         mode = :equals
@@ -112,19 +110,19 @@ module Ruleby
           end
           clazz = args.empty? ? nil : args.shift 
         end
-        
+
         if clazz == nil
           clazz = Object
           mode = :inherits
         end
-        
+
         deftemplate = Core::DefTemplate.new clazz, mode        
         atoms = []
         @when_counter += 1
         htag = Symbol === args[0] ? args.shift : GeneratedTag.new
         head = Core::HeadAtom.new htag, deftemplate
         @tags[htag] = @when_counter
-        
+
         args.each do |arg|
           if arg.kind_of? Hash
             arg.each do |ab,tag|
@@ -145,7 +143,7 @@ module Ruleby
             raise "Invalid condition: #{arg}"
           end
         end  
-        
+
         if is_not 
           p = mode==:inherits ? Core::NotInheritsPattern.new(head, atoms) : 
                                 Core::NotPattern.new(head, atoms)
@@ -153,10 +151,29 @@ module Ruleby
           p = mode==:inherits ? Core::InheritsPattern.new(head, atoms) : 
                                 Core::ObjectPattern.new(head, atoms)
         end
-        return p
+        @pattern = @pattern ? Core::AndPattern.new(@pattern, p) : p
+      end
+
+      def then(&block)
+        @action = Core::Action.new(&block)  
+        @action.name = @name
+        @action.priority = @priority
+      end
+
+      def priority
+        return @priority
+      end
+
+      def priority=(p)
+        @priority = p
+        @action.priority = @priority
+      end 
+
+      def build_rule
+        Core::Rule.new @name, @pattern, @action, @priority
       end
     end
-    
+
     class MethodBuilder  
       public_instance_methods.each do |m|
         a = [:method_missing, :new, :public_instance_methods, :__send__, :__id__]
