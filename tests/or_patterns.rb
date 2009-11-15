@@ -19,50 +19,50 @@ module OrPatterns
 
   class OrPatternsRulebook < Rulebook
     def rules        
-      rule OR([Message, m.message == :HELLO], [Message, m.message == :GOODBYE]), [Context, :c] do |v|
+      rule OR([Message, m.message == :FIRST], [Message, m.message == :SECOND]), [Context, :c] do |v|
         v[:c].inc :rule1
       end  
       
-      rule OR([Message, m.message == :HELLO], [Message, m.message == :FOOBAR]), [Context, :c] do |v|
+      rule OR([Message, m.message == :FIRST], [Message, m.message == :FOOBAR]), [Context, :c] do |v|
         v[:c].inc :rule2
       end 
       
-      rule OR([Message, m.message == :HELLO], [Message, m.message == :HELLO]), [Context, :c] do |v|
-        # this doesn't work yet, but we need it to.
+      rule OR([Message, m.message == :FIRST], [Message, m.message == :FIRST]), [Context, :c] do |v|
         v[:c].inc :rule3
       end 
       
       rule OR([Message, m.message == :FOO], [Message, m.message == :BAR]), [Context, :c] do |v|
+        # this is not expected to pass
         v[:c].inc :rule4
       end
          
-      rule OR([Message, m.message == :FOOBAR], [Message, m.message == :GOODBYE]), [Context, :c] do |v|
+      rule OR([Message, m.message == :FOOBAR], [Message, m.message == :SECOND]), [Context, :c] do |v|
         v[:c].inc :rule5
       end   
       
-      rule AND([Message, m.message == :HELLO], [Message, m.message == :GOODBYE]), [Context, :c] do |v|
+      rule AND([Message, m.message == :FIRST], [Message, m.message == :SECOND]), [Context, :c] do |v|
         # no reason for this to work - its verbose, just checking.
         v[:c].inc :rule6
       end   
       
-      rule AND([Message, m.message == :FOOBAR], [Message, m.message == :GOODBYE]), [Context, :c] do |v|
+      rule AND([Message, m.message == :FOOBAR], [Message, m.message == :SECOND]), [Context, :c] do |v|
         # no reason for this to work - its verbose, just checking.
         v[:c].inc :rule7
       end    
       
-      rule OR(AND([Message, m.message == :HELLO], [Message, m.message == :GOODBYE])), [Context, :c] do |v|
+      rule OR(AND([Message, m.message == :FIRST], [Message, m.message == :SECOND])), [Context, :c] do |v|
         v[:c].inc :rule8
       end   
       
-      rule OR([Message, m.message == :HELLO]), [Context, :c] do |v|
+      rule OR([Message, m.message == :FIRST]), [Context, :c] do |v|
         v[:c].inc :rule9
       end     
       
-      rule OR(AND([Message, m.message == :HELLO], [Message, m.message == :GOODBYE]), [Message, m.message == :FOOBAR]), [Context, :c] do |v|
+      rule OR(AND([Message, m.message == :FIRST], [Message, m.message == :SECOND]), [Message, m.message == :FOOBAR]), [Context, :c] do |v|
         v[:c].inc :rule10
       end   
       
-      rule AND([Message, m.message == :HELLO], [Context, :c]) do |v|
+      rule AND([Message, m.message == :FIRST], [Context, :c]) do |v|
         # no reason for this to work - its verbose.  But it does work, so just checking.
         v[:c].inc :rule11
       end   
@@ -72,7 +72,7 @@ module OrPatterns
         v[:c].inc :rule12
       end
       
-      rule OR([Message, :f, m.message == :FOOBAR], [Message, :g, m.message == :GOODBYE]), [Context, :c] do |v|
+      rule OR([Message, :f, m.message == :FOOBAR], [Message, :g, m.message == :SECOND]), [Context, :c] do |v|
         if v[:f]
           # :f should be null
           v[:c].inc :rule13a          
@@ -84,30 +84,25 @@ module OrPatterns
         end
       end 
       
-      rule OR([[Message, m.message == :HELLO], [Message, m.message == :GOODBYE]]), [Context, :c] do |v|
-        v[:c].inc :rule14
-      end
-      
-      rule [[Message, m.message == :FOOBAR], [Context, :c]] do |v|
-        # this shouldn't work, its just bad syntax
-        v[:c].inc :rule15
-      end 
-      
-      rule OR([[Message, m.message == :HELLO], [Message, m.message == :GOODBYE]], OR([Message, m.message == :FOOBAR], [Message, m.message == :THIRD])), [Context, :c] do |v|
+      rule OR(AND([Message, m.message == :FIRST], [Message, m.message == :SECOND]), OR([Message, m.message == :FOOBAR], [Message, m.message == :THIRD])), [Context, :c] do |v|
         v[:c].inc :rule16
       end
       
-      # rule OR(AND(OR([Message, m.message == :HELLO], [Message, m.message == :GOODBYE]), [Message, m.message == :THIRD])), [Context, :c] do |v|
-      #   v[:c].inc :rule17
-      # end
-      # 
-      # rule OR(AND(OR(OR([Message, m.message == :HELLO])))), [Context, :c] do |v|
-      #   v[:c].inc :rule18
-      # end
-      # 
-      # rule OR(AND(OR(OR([Message, m.message == :FOOBAR])))), [Context, :c] do |v|
-      #   v[:c].inc :rule19
-      # end
+      rule OR(AND(OR([Message, m.message == :FIRST], [Message, m.message == :SECOND]), [Message, m.message == :THIRD])), [Context, :c] do |v|
+        v[:c].inc :rule17
+      end
+      
+      rule OR(AND(OR(OR([Message, m.message == :FIRST])))), [Context, :c] do |v|
+        v[:c].inc :rule18
+      end
+      
+      rule OR(AND(OR(OR([Message, m.message == :FOOBAR])))), [Context, :c] do |v|
+        v[:c].inc :rule19
+      end
+      
+      rule OR([Message, m.message == :FIRST], [Message, m.message == :SECOND], [Message, m.message == :THIRD]), [Context, :c] do |v|
+        v[:c].inc :rule20
+      end
     end
   end
     
@@ -117,16 +112,15 @@ module OrPatterns
         OrPatternsRulebook.new(e).rules
         ctx = Context.new
         e.assert ctx
-        e.assert Message.new(:HELLO, :HELLO)
-        e.assert Message.new(:HELLO, :GOODBYE)
-        e.assert Message.new(:HELLO, :THIRD)
-        e.match          
-        # assert_equal 0, ctx.get(:rule19)
-        # assert_equal 1, ctx.get(:rule18)
-        # assert_equal 1, ctx.get(:rule17)
+        e.assert Message.new(:FIRST, :FIRST)
+        e.assert Message.new(:FIRST, :SECOND)
+        e.assert Message.new(:FIRST, :THIRD)
+        e.match  
+        assert_equal 3, ctx.get(:rule20)        
+        assert_equal 0, ctx.get(:rule19)
+        assert_equal 1, ctx.get(:rule18)
+        assert_equal 1, ctx.get(:rule17)
         assert_equal 3, ctx.get(:rule16) 
-        assert_equal 0, ctx.get(:rule15)
-        assert_equal 1, ctx.get(:rule14)
         assert_equal 1, ctx.get(:rule13b)
         assert_equal 0, ctx.get(:rule13a)
         assert_equal 0, ctx.get(:rule12)

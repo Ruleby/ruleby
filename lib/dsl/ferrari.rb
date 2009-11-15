@@ -4,7 +4,7 @@
 # modify it under the terms of the Ruby license defined in the
 # LICENSE.txt file.
 # 
-# Copyright (c) 2007 Joe Kutner and Matt Smith. All rights reserved.
+# Copyright (c) 2009 Joe Kutner and Matt Smith. All rights reserved.
 #
 # * Authors: Joe Kutner
 #
@@ -21,65 +21,87 @@ module Ruleby
       def rule(name, *args, &block) 
         options = args[0].kind_of?(Hash) ? args.shift : {}        
 
-        parse_containers(*args).each do |containers|
-          r = RuleBuilder.new name
-          containers.each do |container|
-            if container.kind_of? Array
-              # if the first child is an array, we need to flatten things
-              if container[0].kind_of? Array
-                container.each do |inner_container|
-                  r.when(*inner_container)
-                end
-              else
-                r.when(*container)
-              end
-            end
-          end
-
-          r.then(&block)
-          r.priority = options[:priority] if options[:priority]
-
-          @engine.assert_rule(r.build_rule)
-        end
+        parse_containers(args, RulesContainer.new).build(name,options,@engine,&block)
       end     
 
       private
-      def parse_containers(*args)
+      def parse_containers(args, container=AndContainer.new)
         or_builders = []
-        conditions = []
+        and_container = AndContainer.new
         args.each do |arg|
           if arg.kind_of? Array
-            conditions << arg
+            and_container << PatternContainer.new(arg)
           elsif arg.kind_of? AndBuilder
-            conditions << arg.conditions
+            and_container << parse_containers(arg.conditions)
           elsif arg.kind_of? OrBuilder
             or_builders << arg
           else
             raise 'Invalid condition. Must be an OR, AND or an Array.'
           end
         end
-
-        rules = or_builders.empty? ? [conditions] : []
-
+                
+        if or_builders.empty?
+          container << and_container
+          return container
+        end
+               
         while !or_builders.empty?
           or_builder = or_builders.pop          
-          parse_containers(*or_builder.conditions).each do |or_conditions|
-            or_conditions.each do |or_condition|                      
-               rule = []
-               rule.push or_condition
+          parse_containers(or_builder.conditions, OrContainer.new).each do |or_container|
+            or_container.each do |or_container_child|
+              rule = AndContainer.new
+              rule.push or_container_child
 
-               or_builders.each do |sub_or_builder|
-                 parse_containers(*sub_or_builder.conditions).each do |sub_or_condition|
-                   rule.push *sub_or_condition
-                 end
-               end
+              or_builders.each do |sub_or_builder|
+                parse_containers(sub_or_builder.conditions).each do |sub_or_container|
+                  rule.push *sub_or_container
+                end
+              end
 
-               rule.push *conditions
-               rules << rule
-             end
+              rule.push and_container
+              container << rule
+            end
           end     
         end
-        rules
+        container
+      end
+    end
+
+    class RulesContainer < Array
+      def build(name,options,engine,&block)
+        self.each do |x|
+          r = RuleBuilder.new name
+          x.build r
+          r.then(&block)
+          r.priority = options[:priority] if options[:priority]
+          engine.assert_rule(r.build_rule)
+        end
+      end
+    end
+
+    class AndContainer < Array      
+      def build(builder)
+        self.each do |x|
+          x.build builder
+        end
+      end
+    end
+
+    class OrContainer < Array      
+      def build(builder)
+        # OrContainers are never built, they just contain containers that
+        # will be transformed into AndContainers.
+        raise 'Invalid Syntax'
+      end
+    end
+    
+    class PatternContainer
+      def initialize(condition)
+        @condition = condition
+      end
+      
+      def build(builder)
+        builder.when(*@condition)
       end
     end
 
