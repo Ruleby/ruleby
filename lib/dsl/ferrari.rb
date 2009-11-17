@@ -42,28 +42,27 @@ module Ruleby
                 
         if or_builders.empty?
           container << and_container
-          return container
-        end
-               
-        while !or_builders.empty?
-          or_builder = or_builders.pop          
-          parse_containers(or_builder.conditions, OrContainer.new).each do |or_container|
-            or_container.each do |or_container_child|
-              rule = AndContainer.new
-              rule.push or_container_child
+        else                                   
+          while !or_builders.empty?
+            or_builder = or_builders.pop          
+            parse_containers(or_builder.conditions, OrContainer.new).each do |or_container|
+              or_container.each do |or_container_child|
+                rule = AndContainer.new
+                rule.push or_container_child
 
-              or_builders.each do |sub_or_builder|
-                parse_containers(sub_or_builder.conditions).each do |sub_or_container|
-                  rule.push *sub_or_container
+                or_builders.each do |sub_or_builder|
+                  parse_containers(sub_or_builder.conditions).each do |sub_or_container|
+                    rule.push *sub_or_container
+                  end
                 end
-              end
 
-              rule.push and_container
-              container << rule
-            end
-          end     
-        end
-        container
+                rule.push and_container
+                container << rule
+              end
+            end     
+          end
+        end  
+        return container
       end
     end
 
