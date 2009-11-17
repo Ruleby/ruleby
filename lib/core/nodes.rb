@@ -171,8 +171,10 @@ module Ruleby
       def create_join_node(pattern, out_node, side)      
         if (pattern.right_pattern.kind_of?(NotPattern))  
           join_node = NotNode.new 
+        elsif pattern.right_pattern.kind_of?(OrPattern)
+          join_node = OrNode.new  
         else
-          join_node = JoinNode.new    
+          join_node = JoinNode.new  
         end
         
         @join_nodes.push(join_node)      
@@ -541,8 +543,8 @@ module Ruleby
     
     def initialize
       super
-      @left_memory = {}
-      @right_memory = {} 
+      @left_memory = ManyToOneHash.new
+      @right_memory = ManyToOneHash.new
       @ref_nodes = []
     end
     
@@ -567,8 +569,8 @@ module Ruleby
       end
     end
     
-    def assert_right(context)
-      @right_memory[context.fact.id] = context
+    def assert_right(context)      
+      @right_memory[context.match.fact_ids] = context
       @left_memory.values.flatten.each do |left_context|
         mr = match_ref_nodes(left_context,context)      
         if (mr.is_match)
@@ -604,7 +606,7 @@ module Ruleby
         lm = @left_memory[context.fact.id]
         lm = [] unless lm      
         lm.push context
-        @left_memory[context.fact.id] = lm      
+        @left_memory[context.match.fact_ids] = lm      
         # QUESTION for a little while we were having trouble with duplicate 
         # contexts being added to the left_memory.  Double check that this is 
         # not happening
@@ -679,7 +681,7 @@ module Ruleby
     end
     
     def assert_right(context)                    
-      @right_memory[context.fact.id] = context
+      @right_memory[context.match.fact_ids] = context
       if @ref_nodes.empty?
         @left_memory.values.flatten.each do |left_context|
           propagate_retract_resolve(left_context.match)
@@ -707,6 +709,10 @@ module Ruleby
     private:match_ref_nodes
   end
   
+  class OrNode < JoinNode
+    
+  end
+  
   # This class represents the bottom node in the network.  There is a one to one
   # relation between TerminalNodes and Rules.  A terminal node acts as a wrapper
   # for a rule.  The class is responsible for keeping a memory of the 
@@ -717,7 +723,7 @@ module Ruleby
     def initialize(rule)
       super()
       @rule = rule
-      @activations = MultiHash.new  
+      @activations = ManyToManyHash.new  
     end
     attr_reader:activations
   
