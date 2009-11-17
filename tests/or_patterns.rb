@@ -83,6 +83,16 @@ module OrPatterns
           v[:c].inc :rule13b
         end
       end 
+
+      rule OR([Message, :f, m.message == :FIRST], [Message, :s, m.message == :SECOND]), [Context, :c] do |v|
+        if v[:f]
+          v[:c].inc :rule14a          
+        end
+
+        if v[:s]
+          v[:c].inc :rule14b
+        end
+      end
       
       rule OR(AND([Message, m.message == :FIRST], [Message, m.message == :SECOND]), OR([Message, m.message == :FOOBAR], [Message, m.message == :THIRD])), [Context, :c] do |v|
         v[:c].inc :rule16
@@ -121,6 +131,8 @@ module OrPatterns
         assert_equal 1, ctx.get(:rule18)
         assert_equal 1, ctx.get(:rule17)
         assert_equal 3, ctx.get(:rule16) 
+        assert_equal 1, ctx.get(:rule14b)
+        assert_equal 1, ctx.get(:rule14a)
         assert_equal 1, ctx.get(:rule13b)
         assert_equal 0, ctx.get(:rule13a)
         assert_equal 0, ctx.get(:rule12)
