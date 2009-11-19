@@ -21,7 +21,15 @@ module NotPatterns
     def rules        
       rule [:not, Message], [Context, :c] do |v|
         v[:c].inc :rule1
-      end         
+      end   
+            
+      rule [Context, :c], [:not, Message, m.message == :HELLO] do |v|
+        v[:c].inc :rule2
+      end 
+      
+      rule [:not, Message, m.message == :FOOBAR], [Context, :c] do |v|
+        v[:c].inc :rule3
+      end
     end
   end
     
@@ -35,6 +43,8 @@ module NotPatterns
         e.assert Message.new(:HELLO, :GOODBYE)
         e.match          
         assert_equal 1, ctx.get(:rule1)
+        assert_equal 1, ctx.get(:rule3)
+        # assert_equal 0, ctx.get(:rule2)
       end
     end
   end

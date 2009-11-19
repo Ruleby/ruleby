@@ -15,4 +15,5 @@ require 'regex'
 require 'gets'
 require 'assert_facts'
 require 'not_patterns'
-
+require 'or_patterns'
+require 'join_nodes'

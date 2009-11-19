@@ -33,11 +33,9 @@ of IF-THEN statements known as production rules. These rules are matched to obje
 the forward chaining Rete algorithm. Ruleby provides an internal Domain Specific Language 
 (DSL) for building the productions that make up a Ruleby program.
 
-Release Notes for Version 0.5
-* reset the TerminalNode.counter when initializing the RootNode.  Thanks to Shashank for the patch.
-* added InitialFact so that NotPatterns can be put at the front of a rule [#1 status:resolved]
-* Improved rule assertion so that rules can be added after facts have been asserted [#9 state:resolved]
-* Added retrieve method to engine, and a unit-test for it 
+Release Notes for Version 0.6-SNAPSHOT
+* Added support for AND and OR functions in the LHS of a rule
+* Added the ability to self-reference in the LHS without binding
 EOF
     
     #s.extra_rdoc_files  = [ 'README.txt' ]

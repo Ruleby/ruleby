@@ -4,7 +4,7 @@
 # modify it under the terms of the Ruby license defined in the
 # LICENSE.txt file.
 # 
-# Copyright (c) 2007 Joe Kutner and Matt Smith. All rights reserved.
+# Copyright (c) 2009 Joe Kutner and Matt Smith. All rights reserved.
 #
 # * Authors: Joe Kutner
 #
@@ -20,37 +20,103 @@ module Ruleby
     
       def rule(name, *args, &block) 
         options = args[0].kind_of?(Hash) ? args.shift : {}        
-        
-        r = RuleBuilder.new name
+
+        parse_containers(args, RulesContainer.new).build(name,options,@engine,&block)
+      end     
+
+      private
+      def parse_containers(args, container=AndContainer.new)
+        or_builders = []
+        and_container = AndContainer.new
         args.each do |arg|
           if arg.kind_of? Array
-            r.when(*arg)
+            and_container << PatternContainer.new(arg)
+          elsif arg.kind_of? AndBuilder
+            and_container << parse_containers(arg.conditions)
+          elsif arg.kind_of? OrBuilder
+            or_builders << arg
           else
-            raise 'Invalid condition.  All or none must be Arrays.'
+            raise 'Invalid condition. Must be an OR, AND or an Array.'
           end
         end
-        
-        r.then(&block)
-        r.priority = options[:priority] if options[:priority]
-        
-        @engine.assert_rule(r.build_rule)
+                
+        if or_builders.empty?
+          container << and_container
+        else                                   
+          while !or_builders.empty?
+            or_builder = or_builders.pop          
+            parse_containers(or_builder.conditions, OrContainer.new).each do |or_container|
+              or_container.each do |or_container_child|
+                rule = AndContainer.new
+                rule.push or_container_child
+
+                or_builders.each do |sub_or_builder|
+                  parse_containers(sub_or_builder.conditions).each do |sub_or_container|
+                    rule.push *sub_or_container
+                  end
+                end
+
+                rule.push and_container
+                container << rule
+              end
+            end     
+          end
+        end  
+        return container
       end
-      
+    end
+
+    class RulesContainer < Array
+      def build(name,options,engine,&block)
+        self.each do |x|
+          r = RuleBuilder.new name
+          x.build r
+          r.then(&block)
+          r.priority = options[:priority] if options[:priority]
+          engine.assert_rule(r.build_rule)
+        end
+      end
+    end
+
+    class AndContainer < Array      
+      def build(builder)
+        self.each do |x|
+          x.build builder
+        end
+      end
+    end
+
+    class OrContainer < Array      
+      def build(builder)
+        # OrContainers are never built, they just contain containers that
+        # will be transformed into AndContainers.
+        raise 'Invalid Syntax'
+      end
     end
     
+    class PatternContainer
+      def initialize(condition)
+        @condition = condition
+      end
+      
+      def build(builder)
+        builder.when(*@condition)
+      end
+    end
+
     class RuleBuilder
-    
+
       def initialize(name, pattern=nil, action=nil, priority=0) 
         @name = name
         @pattern = pattern
         @action = action  
         @priority = priority            
-        
+
         @tags = {}
         @methods = {}
         @when_counter = 0
       end   
-        
+
       def when(*args)      
         clazz = AtomBuilder === args[0] ? nil : args.shift
         is_not = false
@@ -65,19 +131,19 @@ module Ruleby
           end
           clazz = args.empty? ? nil : args.shift 
         end
-        
+
         if clazz == nil
           clazz = Object
           mode = :inherits
         end
-        
+
         deftemplate = Core::DefTemplate.new clazz, mode        
         atoms = []
         @when_counter += 1
         htag = Symbol === args[0] ? args.shift : GeneratedTag.new
         head = Core::HeadAtom.new htag, deftemplate
         @tags[htag] = @when_counter
-        
+
         args.each do |arg|
           if arg.kind_of? Hash
             arg.each do |ab,tag|
@@ -98,7 +164,7 @@ module Ruleby
             raise "Invalid condition: #{arg}"
           end
         end  
-        
+
         if is_not 
           p = mode==:inherits ? Core::NotInheritsPattern.new(head, atoms) : 
                                 Core::NotPattern.new(head, atoms)
@@ -107,30 +173,28 @@ module Ruleby
                                 Core::ObjectPattern.new(head, atoms)
         end
         @pattern = @pattern ? Core::AndPattern.new(@pattern, p) : p
-        
-        return nil
       end
-      
+
       def then(&block)
         @action = Core::Action.new(&block)  
         @action.name = @name
         @action.priority = @priority
       end
-          
+
       def priority
         return @priority
       end
-      
+
       def priority=(p)
         @priority = p
         @action.priority = @priority
       end 
-        
+
       def build_rule
         Core::Rule.new @name, @pattern, @action, @priority
       end
     end
-    
+
     class MethodBuilder  
       public_instance_methods.each do |m|
         a = [:method_missing, :new, :public_instance_methods, :__send__, :__id__]
@@ -285,6 +349,20 @@ module Ruleby
     class NotOperatorBuilder < AtomBuilder
       def ==(value)
         create_block value, lambda {|x,y| x != y}, lambda {|x| x != value}; self
+      end
+    end
+
+    class OrBuilder 
+      attr_reader :conditions
+      def initialize(conditions)
+        @conditions = conditions
+      end
+    end
+
+    class AndBuilder
+      attr_reader :conditions
+      def initialize(conditions)
+        @conditions = conditions
       end
     end
   end
