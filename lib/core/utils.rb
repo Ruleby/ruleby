@@ -342,7 +342,8 @@ module Ruleby
         return @values.default
       end
         
-      def remove(id)      
+      def remove(id)
+        result = default      
         xref_list = @keys.delete(id)
         if xref_list != @keys.default
           removed_values = []
@@ -354,11 +355,9 @@ module Ruleby
               remove_internal(next_id,xref) if next_id != id
             end
           end
-          return removed_values
-        else
-  #        puts 'WARN: tried to remove from MultiHash where id does not exist'        
-          return default
+          result = removed_values
         end
+        return result
       end
     
       def remove_internal(id,xref)
@@ -391,15 +390,15 @@ module Ruleby
     
       def delete_if
         @values.delete_if do |xref,v|  
+          r = false
           if yield(v)
             id_list = @backward_hash.delete(xref)
             id_list.each do |next_id|
               remove_internal(next_id,xref)
             end
-            true
-          else
-            false
+            r = true
           end
+          r
         end
       end
     

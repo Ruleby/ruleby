@@ -384,7 +384,9 @@ module Ruleby
       propagate_assert fact, @values[k] 
     rescue NoMethodError => e
       # If the method does not exist, it is the same as if it evaluted to 
-      # false, and the network traverse stops
+      # false, and the network traverse stops.
+      # this is necessary for duck type rules - but it causes mistakes in
+      # the node classes to be masked
     end
   end
   
@@ -515,6 +517,13 @@ module Ruleby
         out_node.retract_left(fact)
       end
     end
+
+    # this might move into ParentNode
+    def retract_resolve(match)
+      @out_nodes.each do |out_node|
+        out_node.retract_resolve(match)
+      end
+    end
   end
   
   # This class is used to plug nodes into the right input of a two-input 
@@ -529,6 +538,12 @@ module Ruleby
     def propagate_retract(fact)
       @out_nodes.each do |out_node|
         out_node.retract_right(fact)
+      end
+    end
+    
+    def retract_resolve(match)
+      @out_nodes.each do |out_node|
+        out_node.retract_resolve(match)
       end
     end
   end
@@ -582,6 +597,19 @@ module Ruleby
         
     def to_s
       return "#{self.class}:#{object_id} | #{@left_memory.values} | #{@right_memory}"
+    end  
+      
+    def retract_resolve(match)
+      # in this method we retract an existing match from memory if it resolves
+      # with the match given.  It would probably be better to check if it 
+      # resolves with a list of facts.  But the system is not set up for
+      # that yet.     
+      # @left_memory.each do |fact_id,contexts|        
+      #   contexts.delete_if do |left_context|
+      #     resolve(left_context.match, match)          
+      #   end        
+      # end
+      propagate_retract_resolve(match)
     end
     
     private    
@@ -595,13 +623,14 @@ module Ruleby
             if ref_mr.is_match
               mr = mr.merge ref_mr
             else
-              return MatchResult.new
+              mr = MatchResult.new
+              break
             end
           end
           return mr
         end
       end
-      
+    
       def add_to_left_memory(context)
         lm = @left_memory[context.fact.id]
         lm = [] unless lm      
@@ -615,18 +644,6 @@ module Ruleby
       def propagate_retract_resolve(match)
         @out_nodes.each do |o|
           o.retract_resolve(match)
-        end
-      end
-      
-      def retract_resolve(match)
-        # in this method we retract an existing match from memory if it resolves
-        # with the match given.  It would probably be better to check if it 
-        # resolves with a list of facts.  But the system is not set up for
-        # that yet.
-        @left_memory.each do |fact_id,contexts|
-          value.delete_if do |left_context|          
-            resolve(left_context.match, match)
-          end        
         end
       end
   end
@@ -664,7 +681,7 @@ module Ruleby
       end
     end
   
-   def assert_left(context)    
+   def assert_left(context)     
       add_to_left_memory(context)      
       if @ref_nodes.empty? && @right_memory.empty?
         propagate_assert(context)
@@ -680,17 +697,19 @@ module Ruleby
       end
     end
     
-    def assert_right(context)                    
+    def assert_right(context)                   
       @right_memory[context.match.fact_ids] = context
       if @ref_nodes.empty?
-        @left_memory.values.flatten.each do |left_context|
+        @left_memory.values.flatten.each do |left_context|          
           propagate_retract_resolve(left_context.match)
+          # left_context.match.fact_ids.each do |fact_id|
+          #   propagate_retract(DummyFact.new(fact_id))
+          # end
         end
       else
         @left_memory.values.flatten.each do |left_context|
           if match_ref_nodes(left_context,context)
-            # QUESTION is there a more efficient way to retract here?
-            propagate_retract_resolve(left_context.match)
+            propagate_retract_resolve(left_context.match)        
           end
         end
       end
@@ -698,19 +717,16 @@ module Ruleby
     
     # NOTE this returns a boolean, while the other classes return a MatchResult
     def match_ref_nodes(left_context,right_context)
+      result = true
       @ref_nodes.each do |ref_node|
         ref_mr = ref_node.match(left_context, right_context.fact)
         unless ref_mr.is_match
-          return false
+          result = false
         end
       end
-      return true
+      return result
     end
     private:match_ref_nodes
-  end
-  
-  class OrNode < JoinNode
-    
   end
   
   # This class represents the bottom node in the network.  There is a one to one
@@ -734,7 +750,7 @@ module Ruleby
     end
     
     def retract(fact)
-      @activations.remove fact.id
+      @activations.remove fact.id 
     end
     
     def satisfied?
@@ -751,7 +767,7 @@ module Ruleby
       # check if it resolves with a list of facts.  But the system is not set up
       # for that yet.
       @activations.delete_if do |activation|
-        resolve(activation.match, match)
+        resolve(activation.match, match)   
       end
     end    
     
