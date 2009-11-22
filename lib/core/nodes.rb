@@ -517,11 +517,10 @@ module Ruleby
         out_node.retract_left(fact)
       end
     end
-
-    # this might move into ParentNode
+    
     def retract_resolve(match)
-      @out_nodes.each do |out_node|
-        out_node.retract_resolve(match)
+      @out_nodes.each do |o|
+        o.retract_resolve(match)
       end
     end
   end
@@ -539,11 +538,11 @@ module Ruleby
       @out_nodes.each do |out_node|
         out_node.retract_right(fact)
       end
-    end
-    
+    end  
+      
     def retract_resolve(match)
-      @out_nodes.each do |out_node|
-        out_node.retract_resolve(match)
+      @out_nodes.each do |o|
+        o.retract_resolve(match)
       end
     end
   end
@@ -604,9 +603,9 @@ module Ruleby
       # with the match given.  It would probably be better to check if it 
       # resolves with a list of facts.  But the system is not set up for
       # that yet.     
-      # @left_memory.each do |fact_id,contexts|        
-      #   contexts.delete_if do |left_context|
-      #     resolve(left_context.match, match)          
+      # @left_memory.each do |fact_id,contexts|
+      #   contexts.delete_if do |left_context|          
+      #     resolve(left_context.match, match)
       #   end        
       # end
       propagate_retract_resolve(match)

@@ -36,6 +36,7 @@ the forward chaining Rete algorithm. Ruleby provides an internal Domain Specific
 Release Notes for Version 0.6-SNAPSHOT
 * Added support for AND and OR functions in the LHS of a rule
 * Added the ability to self-reference in the LHS without binding
+* Fixed bug in retract_resolve on JoinNode that was causing inconsistent behavior of :not patterns.
 EOF
     
     #s.extra_rdoc_files  = [ 'README.txt' ]
