@@ -16,19 +16,47 @@ require 'ruleby'
 include Ruleby
 
 module NotPatterns
+  
+  class A 
+    attr :name, true
+  end
+  
+  class B
+    attr :name, true    
+  end
+
+  class C
+    attr :name, true    
+  end
 
   class NotPatternsRulebook < Rulebook
     def rules        
-      rule [:not, Message], [Context, :c] do |v|
+      rule [:not, A], [Context, :c] do |v|
         v[:c].inc :rule1
       end   
             
-      rule [Context, :c], [:not, Message, m.message == :HELLO] do |v|
+      rule [Context, :c], [:not, A, m.name == :X] do |v|
         v[:c].inc :rule2
       end 
       
-      rule [:not, Message, m.message == :FOOBAR], [Context, :c] do |v|
+      rule [:not, A, m.name == :Y], [Context, :c] do |v|
         v[:c].inc :rule3
+      end 
+            
+      rule [A, {m.name => :x}], 
+           [:not, B, m.name == b(:x)], 
+           [Context, :c] do |v|
+        v[:c].inc :rule4
+      end
+
+      rule [A, :a, {m.name => :x}], 
+           [:not, C, :c, m.name == b(:x)], 
+           [Context, :c] do |v|
+        v[:c].inc :rule5
+      end
+      
+      rule [:not, Message], [Context, :c] do |v|
+        v[:c].inc :rule6
       end
     end
   end
@@ -39,12 +67,24 @@ module NotPatterns
         NotPatternsRulebook.new(e).rules
         ctx = Context.new
         e.assert ctx
-        e.assert Message.new(:HELLO, :HELLO)
-        e.assert Message.new(:HELLO, :GOODBYE)
+        
+        a = A.new
+        a.name = :X
+        e.assert a
+        b = B.new
+        b.name = :Y
+        e.assert b
+        c = C.new
+        c.name = :X        
+        e.assert c
+        
         e.match          
-        assert_equal 1, ctx.get(:rule1)
+        assert_equal 0, ctx.get(:rule1)
         assert_equal 1, ctx.get(:rule3)
-        # assert_equal 0, ctx.get(:rule2)
+        assert_equal 0, ctx.get(:rule2)
+        assert_equal 1, ctx.get(:rule4)
+        assert_equal 0, ctx.get(:rule5)
+        assert_equal 1, ctx.get(:rule6)
       end
     end
   end

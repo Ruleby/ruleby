@@ -513,6 +513,12 @@ module Ruleby
         out_node.retract_left(fact)
       end
     end
+    
+    def retract_resolve(match)
+      @out_nodes.each do |o|
+        o.retract_resolve(match)
+      end
+    end
   end
   
   # This class is used to plug nodes into the right input of a two-input 
@@ -527,6 +533,12 @@ module Ruleby
     def propagate_retract(fact)
       @out_nodes.each do |out_node|
         out_node.retract_right(fact)
+      end
+    end  
+      
+    def retract_resolve(match)
+      @out_nodes.each do |o|
+        o.retract_resolve(match)
       end
     end
   end
@@ -580,6 +592,19 @@ module Ruleby
         
     def to_s
       return "#{self.class}:#{object_id} | #{@left_memory.values} | #{@right_memory}"
+    end  
+      
+    def retract_resolve(match)
+      # in this method we retract an existing match from memory if it resolves
+      # with the match given.  It would probably be better to check if it 
+      # resolves with a list of facts.  But the system is not set up for
+      # that yet.
+      @left_memory.each do |fact_id,contexts|
+        contexts.delete_if do |left_context|          
+          resolve(left_context.match, match)
+        end        
+      end
+      propagate_retract_resolve(match)
     end
     
     private    
@@ -593,7 +618,8 @@ module Ruleby
             if ref_mr.is_match
               mr = mr.merge ref_mr
             else
-              return MatchResult.new
+              mr = MatchResult.new
+              break
             end
           end
           return mr
@@ -613,18 +639,6 @@ module Ruleby
       def propagate_retract_resolve(match)
         @out_nodes.each do |o|
           o.retract_resolve(match)
-        end
-      end
-      
-      def retract_resolve(match)
-        # in this method we retract an existing match from memory if it resolves
-        # with the match given.  It would probably be better to check if it 
-        # resolves with a list of facts.  But the system is not set up for
-        # that yet.
-        @left_memory.each do |fact_id,contexts|
-          value.delete_if do |left_context|          
-            resolve(left_context.match, match)
-          end        
         end
       end
   end
