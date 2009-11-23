@@ -10,13 +10,14 @@ the forward chaining Rete algorithm. Ruleby provides an internal Domain Specific
 
 Version 
 -------
-0.6-SNAPSHOT
+0.6
 
 Release Notes
 -------------
 * Added support for AND and OR conditional elements in the LHS of a rule
 * Added the ability to self-reference in the LHS without binding
 * Fixed bug in retract_resolve on JoinNode that was causing inconsistent behavior of :not patterns.
+* Several minor bug fixes
 
 Mailing List
 ------------
