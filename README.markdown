@@ -14,7 +14,7 @@ Version
 
 Release Notes
 -------------
-
++  Fixed a bug that was causing Exceptions in RHS condition blocks to be swallowed
 
 Mailing List
 ------------
