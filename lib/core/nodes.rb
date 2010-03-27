@@ -417,7 +417,9 @@ module Ruleby
       begin
         super if @atom.proc.call(val)
       rescue Exception => e
-        print '' # There is a bug in Ruby MRI that goes away when call print 
+        # There is a bug in Ruby MRI that goes away when we call print.  Even if the following
+        # line of code is never executed at runtime.  The problem does not exist in JRuby
+        print ''
         raise ProcessInvocationError.new(e), e.message
       end
     end
