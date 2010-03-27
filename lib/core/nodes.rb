@@ -414,7 +414,12 @@ module Ruleby
         # false, and the network traverse stops
         return
       end
-      super if @atom.proc.call(val)
+      begin
+        super if @atom.proc.call(val)
+      rescue Exception => e
+        print '' # There is a bug in Ruby MRI that goes away when call print 
+        raise ProcessInvocationError.new(e), e.message
+      end
     end
   end
   

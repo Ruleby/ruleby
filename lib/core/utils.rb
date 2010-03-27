@@ -18,6 +18,26 @@ module Ruleby
     class InitialFact
       
     end
+    
+    # Appearently Ruby doesn't have any kind of Exception chaining.  So this class will have
+    # fill the gap for Ruleby.  
+    class ProcessInvocationError < StandardError
+      def initialize(root_cause)
+        @root_cause = root_cause
+      end
+      
+      def backtrace
+        @root_cause.backtrace
+      end
+      
+      def inspect
+        @root_cause.inspect
+      end
+      
+      def to_s
+        @root_cause.to_s
+      end
+    end
   
     # This class is a wrapper for the context under which the network executes for
     # for a given fact.  It is essentially a wrapper for a fact and a partial
