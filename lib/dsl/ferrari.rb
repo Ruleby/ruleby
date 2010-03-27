@@ -288,10 +288,6 @@ module Ruleby
         create_block value, lambda {|x,y| x >= y}, lambda {|x| x >= value}; self
       end 
       
-      def =~(value)
-        create_block value, lambda {|x,y| x =~ y}, lambda {|x| x =~ value}; self
-      end 
-      
       def build_atoms(tags,methods,when_id)
         atoms = @child_atom_builders.map { |atom_builder|
           tags[atom_builder.tag] = when_id
