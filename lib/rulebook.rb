@@ -10,6 +10,7 @@
 #
 
 require 'ruleby'
+require 'rule_helper'
 require 'dsl/ferrari'
 require 'dsl/letigre'
 require 'dsl/steel'
@@ -17,6 +18,7 @@ require 'dsl/steel'
 module Ruleby
   class Rulebook
     include Ruleby
+    include Ruleby::RuleHelper
     def initialize(engine, &block)
       @engine = engine
       yield self if block_given?
@@ -57,66 +59,30 @@ module Ruleby
         end
       end
     end
-    
-    def m
-      Ruleby::Ferrari::MethodBuilder.new
-    end
-    
-    def method
-      m
-    end
-    
-    def b(variable_name)
-      Ruleby::Ferrari::BindingBuilder.new(variable_name)
-    end
-    
-    def binding(variable_name)
-      b variable_name
-    end
-    
-    def c(&block)
-      return lambda(&block)
-    end
-    
-    def condition(&block)
-      return lambda(&block)
-    end
-    
-    def OR(*args)
-      Ruleby::Ferrari::OrBuilder.new args
-    end
-    
-    def AND(*args)
-      Ruleby::Ferrari::AndBuilder.new args
-    end
-    
-    def __eval__(x)
-      eval(x)
-    end
-  end  
+  end
   
   class GeneratedTag  
     # this counter is incremented for each UniqueTag created, and is
     # appended to the end of the unique_seed in order to create a 
     # string that is unique for each instance of this class.
     @@tag_counter = 0
-    
+
     # every generated tag will be prefixed with this string
     @@unique_seed = 'unique_seed'
-  
+
     def initialize()
       @@tag_counter += 1
       @tag = @@unique_seed + @@tag_counter.to_s
     end
-    
+
     attr_reader:tag_counter
     attr_reader:unique_seed
     attr_reader:tag
-    
+
     def ==(ut)
       return ut && ut.kind_of?(GeneratedTag) && @tag == ut.tag
     end
-    
+
     def to_s
       return @tag.to_s
     end

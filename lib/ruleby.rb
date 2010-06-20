@@ -18,7 +18,7 @@ module Ruleby
     e = Core::Engine.new
     yield e if block_given?
     return e
-  end
+  end  
 end
 
 class String

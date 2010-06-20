@@ -23,6 +23,7 @@ module Ruleby
     attr_accessor :priority
     attr_accessor :name
     attr_reader   :matches
+    attr_reader   :proc
     
     def initialize(&block)
       @name = nil
@@ -30,8 +31,12 @@ module Ruleby
       @priority = 0
     end
             
-    def fire(match)
-      @proc.call(match)        
+    def fire(match, engine=nil)
+      if @proc.arity == 2
+        @proc.call(match, engine)
+      else
+        @proc.call(match)
+      end
     end 
        
     def ==(a2)
@@ -55,9 +60,9 @@ module Ruleby
       @used = false
     end   
     
-    def fire()
+    def fire(engine=nil)
       @used = true
-      @action.fire @match
+      @action.fire @match, engine
     end
     
     def <=>(a2)          
@@ -177,6 +182,7 @@ module Ruleby
   # instantiating it.  Each rule engine has one inference engine, one rule set
   # and one working memory.
   class Engine        
+    
     def initialize(wm=WorkingMemory.new,cr=RulebyConflictResolver.new)
       @root = nil
       @working_memory = wm
@@ -231,7 +237,7 @@ module Ruleby
           agenda = @conflict_resolver.resolve agenda            
           activation = agenda.pop   
           used_agenda.push activation     
-          activation.fire   
+          activation.fire self   
           if @wm_altered          
             agenda = @root.matches(false)    
             @root.increment_counter

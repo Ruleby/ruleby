@@ -21,51 +21,52 @@ module Ruleby
       def rule(name, *args, &block) 
         options = args[0].kind_of?(Hash) ? args.shift : {}        
 
-        parse_containers(args, RulesContainer.new).build(name,options,@engine,&block)
-      end     
-
-      private
-      def parse_containers(args, container=AndContainer.new)
-        or_builders = []
-        and_container = AndContainer.new
-        args.each do |arg|
-          if arg.kind_of? Array
-            and_container << PatternContainer.new(arg)
-          elsif arg.kind_of? AndBuilder
-            and_container << parse_containers(arg.conditions)
-          elsif arg.kind_of? OrBuilder
-            or_builders << arg
-          else
-            raise 'Invalid condition. Must be an OR, AND or an Array.'
-          end
-        end
-                
-        if or_builders.empty?
-          container << and_container
-        else                                   
-          while !or_builders.empty?
-            or_builder = or_builders.pop          
-            parse_containers(or_builder.conditions, OrContainer.new).each do |or_container|
-              or_container.each do |or_container_child|
-                rule = AndContainer.new
-                rule.push or_container_child
-
-                or_builders.each do |sub_or_builder|
-                  parse_containers(sub_or_builder.conditions).each do |sub_or_container|
-                    rule.push *sub_or_container
-                  end
-                end
-
-                rule.push and_container
-                container << rule
-              end
-            end     
-          end
-        end  
-        return container
+        r = Ruleby::Ferrari.parse_containers(args, RulesContainer.new).build(name,options,@engine,&block)
+        engine.assert_rule(r)
       end
     end
 
+    #private
+    def self.parse_containers(args, container=AndContainer.new)
+      or_builders = []
+      and_container = AndContainer.new
+      args.each do |arg|
+        if arg.kind_of? Array
+          and_container << PatternContainer.new(arg)
+        elsif arg.kind_of? AndBuilder
+          and_container << parse_containers(arg.conditions)
+        elsif arg.kind_of? OrBuilder
+          or_builders << arg
+        else
+          raise 'Invalid condition. Must be an OR, AND or an Array.'
+        end
+      end
+              
+      if or_builders.empty?
+        container << and_container
+      else                                   
+        while !or_builders.empty?
+          or_builder = or_builders.pop          
+          parse_containers(or_builder.conditions, OrContainer.new).each do |or_container|
+            or_container.each do |or_container_child|
+              rule = AndContainer.new
+              rule.push or_container_child
+
+              or_builders.each do |sub_or_builder|
+                parse_containers(sub_or_builder.conditions).each do |sub_or_container|
+                  rule.push *sub_or_container
+                end
+              end
+
+              rule.push and_container
+              container << rule
+            end
+          end     
+        end
+      end  
+      return container
+    end
+    
     class RulesContainer < Array
       def build(name,options,engine,&block)
         self.each do |x|
@@ -73,7 +74,8 @@ module Ruleby
           x.build r
           r.then(&block)
           r.priority = options[:priority] if options[:priority]
-          engine.assert_rule(r.build_rule)
+          #engine.assert_rule(r.build_rule)
+          return r.build_rule
         end
       end
     end
