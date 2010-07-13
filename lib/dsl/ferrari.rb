@@ -21,8 +21,10 @@ module Ruleby
       def rule(name, *args, &block) 
         options = args[0].kind_of?(Hash) ? args.shift : {}        
 
-        r = Ruleby::Ferrari.parse_containers(args, RulesContainer.new).build(name,options,@engine,&block)
-        engine.assert_rule(r)
+        rules = Ruleby::Ferrari.parse_containers(args, RulesContainer.new).build(name,options,@engine,&block)
+        rules.each do |r|
+          engine.assert_rule(r)
+        end
       end
     end
 
@@ -69,14 +71,16 @@ module Ruleby
     
     class RulesContainer < Array
       def build(name,options,engine,&block)
+        rules = []
         self.each do |x|
           r = RuleBuilder.new name
           x.build r
           r.then(&block)
           r.priority = options[:priority] if options[:priority]
           #engine.assert_rule(r.build_rule)
-          return r.build_rule
+          rules << r.build_rule
         end
+        return rules
       end
     end
 

@@ -20,8 +20,8 @@ module Ruleby
       end
       options = args[0].kind_of?(Hash) ? args.shift : {}        
 
-      r = Ruleby::Ferrari.parse_containers(args, Ruleby::Ferrari::RulesContainer.new).build(name,options,@engine,&block)
-      r
+      rules = Ruleby::Ferrari.parse_containers(args, Ruleby::Ferrari::RulesContainer.new).build(name,options,@engine,&block)
+      rules
     end
 
     def m
