@@ -27,78 +27,174 @@ module Ruleby
         end
       end
     end
-
-    #private
-    def self.parse_containers(args, container=AndContainer.new)
-      or_builders = []
-      and_container = AndContainer.new
+    
+    def self.parse_containers(args, container=Container(:and), parent=nil)
+      con = nil
+      if(container.kind_of?(RulesContainer))
+        con = Container.new(:and)
+      else
+        con = container
+      end
       args.each do |arg|
         if arg.kind_of? Array
-          and_container << PatternContainer.new(arg)
+          con << PatternContainer.new(arg)
         elsif arg.kind_of? AndBuilder
-          and_container << parse_containers(arg.conditions)
-        elsif arg.kind_of? OrBuilder
-          or_builders << arg
+          con << parse_containers(arg.conditions, Container.new(:and), container)
+        elsif arg.kind_of? OrBuilder  
+          con << parse_containers(arg.conditions, Container.new(:or), container)
         else
           raise 'Invalid condition. Must be an OR, AND or an Array.'
         end
       end
-              
-      if or_builders.empty?
-        container << and_container
-      else                                   
-        while !or_builders.empty?
-          or_builder = or_builders.pop          
-          parse_containers(or_builder.conditions, OrContainer.new).each do |or_container|
-            or_container.each do |or_container_child|
-              rule = AndContainer.new
-              rule.push or_container_child
-
-              or_builders.each do |sub_or_builder|
-                parse_containers(sub_or_builder.conditions).each do |sub_or_container|
-                  rule.push *sub_or_container
-                end
-              end
-
-              rule.push and_container
-              container << rule
-            end
-          end     
-        end
-      end  
+      if container.kind_of?(RulesContainer)
+        container << con
+      end
       return container
     end
     
     class RulesContainer < Array
+      def process_tree(container)
+        has_child_or = false
+        container.uniq!
+        unless container.kind_of? PatternContainer
+          container.each_with_index do |c, i|
+            if container[i].kind_of?(Container)
+              process_tree(container[i])
+              if container[i].or?
+                has_child_or = true
+              end
+            end
+          end
+        end
+        if has_child_or
+          transform_or(container)     
+        end
+      end
+      def transform_or(parent)
+        ors = []
+        others = []
+        permutations = 1
+        index = 0
+        parent.each do |child|
+          if(!(child.kind_of?(PatternContainer)) && (child.or?))
+            permutations *= child.size
+            ors << child
+          else
+            others[index] = child
+          end
+          index = index + 1
+        end
+        # set parent type to or and clear
+        parent.kind = :or
+        parent.clear
+        indexes = []
+        # initialize indexes
+        ors.each do |o|
+          indexes << 0
+        end
+        # create children
+        (1.upto(permutations)).each do |i|
+          and_container = Container.new(:and)
+          
+          mod = 1
+          (ors.size - 1).downto(0) do |j|
+            and_container.insert(0,ors[j][indexes[j]])
+            if((i % mod) == 0)
+              indexes[j] = (indexes[j] + 1) % ors[j].size
+            end
+            mod *= ors[j].size
+          end
+          
+          others.each_with_index do |other, k|
+            if others[k] != nil
+              and_container.insert(k, others[k])
+            end
+          end  
+          # add child to parent        
+          parent.push(and_container)         
+        end
+        parent.uniq!
+      end
+      
+      def handle_branching(container)
+          ands = []
+          container.each do |x|
+            if x.or?
+              x.each do |branch|
+                ands << branch
+              end
+            elsif x.and?
+              ands << x
+            else
+              new_and = Container.new(:and)
+              new_and << x
+              ands << new_and
+            end   
+          end
+          return ands
+      end
+      
       def build(name,options,engine,&block)
-        rules = []
-        self.each do |x|
-          r = RuleBuilder.new name
-          x.build r
-          r.then(&block)
-          r.priority = options[:priority] if options[:priority]
-          #engine.assert_rule(r.build_rule)
-          rules << r.build_rule
+        rules = []        
+        self.each_with_index do |x, i|
+          process_tree(x)
+        end
+        container = self
+        ands = handle_branching(container)
+        ands.each do |a|
+          rules << build_rule(name, a, options, &block)
         end
         return rules
       end
+      
+      def build_rule(name, container, options, &block)
+        r = RuleBuilder.new name
+        container.build r
+        r.then(&block)
+        r.priority = options[:priority] if options[:priority]
+        r.build_rule
+      end
     end
 
-    class AndContainer < Array      
+
+    class Container < Array
+      attr_accessor :kind
+      def initialize(kind)
+        @kind = kind
+      end
       def build(builder)
+        if self.or?
+          # OrContainers are never built, they just contain containers that
+          # will be transformed into AndContainers.
+          raise 'Invalid Syntax'
+        end
         self.each do |x|
           x.build builder
         end
       end
-    end
-
-    class OrContainer < Array      
-      def build(builder)
-        # OrContainers are never built, they just contain containers that
-        # will be transformed into AndContainers.
-        raise 'Invalid Syntax'
+      def or?
+        return kind == :or
+      end
+      def and?
+        return kind == :and
       end
     end
+    
+    # class AndContainer < Array      
+    #       def build(builder)
+    #         self.each do |x|
+    #           x.build builder
+    #         end
+    #       end
+    #     end
+    # 
+    #     class OrContainer < Array      
+    #       def build(builder)
+    #         OrContainers are never built, they just contain containers that
+                # will be transformed into AndContainers.
+    #          raise 'Invalid Syntax'
+    #       end
+    #     end
     
     class PatternContainer
       def initialize(condition)
