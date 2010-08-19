@@ -100,21 +100,21 @@ module Ruleby
       end
       
       def handle_branching(container)
-          ands = []
-          container.each do |x|
-            if x.or?
-              x.each do |branch|
-                ands << branch
-              end
-            elsif x.and?
-              ands << x
-            else
-              new_and = Container.new(:and)
-              new_and << x
-              ands << new_and
-            end   
-          end
-          return ands
+        ands = []
+        container.each do |x|
+          if x.or?
+            x.each do |branch|
+              ands << branch
+            end
+          elsif x.and?
+            ands << x
+          else
+            new_and = Container.new(:and)
+            new_and << x
+            ands << new_and
+          end   
+        end
+        return ands
       end
       
       def build(name,options,engine,&block)
@@ -124,9 +124,7 @@ module Ruleby
             transform_or(c)     
           end
         end
-        container = self
-        ands = handle_branching(container)
-        ands.each do |a|
+        handle_branching(self).each do |a|
           rules << build_rule(name, a, options, &block)
         end
         return rules
