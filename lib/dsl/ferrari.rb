@@ -4,9 +4,9 @@
 # modify it under the terms of the Ruby license defined in the
 # LICENSE.txt file.
 # 
-# Copyright (c) 2009 Joe Kutner and Matt Smith. All rights reserved.
+# Copyright (c) 2010 Joe Kutner and Matt Smith. All rights reserved.
 #
-# * Authors: Joe Kutner
+# * Authors: Joe Kutner, Matt Smith
 #
 
 module Ruleby
