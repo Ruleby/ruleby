@@ -56,13 +56,11 @@ module Ruleby
       def process_tree(container)
         has_child_or = false
         container.uniq!
-        unless container.kind_of? PatternContainer
-          container.each_with_index do |c, i|
-            if container[i].kind_of?(Container)
-              process_tree(container[i])
-              if container[i].or?
-                has_child_or = true
-              end
+        container.process_tree do |c, i|
+          if container[i].kind_of?(Container)
+            process_tree(container[i])
+            if container[i].or?
+              has_child_or = true
             end
           end
         end
@@ -70,13 +68,14 @@ module Ruleby
           transform_or(container)     
         end
       end
+      
       def transform_or(parent)
         ors = []
         others = []
         permutations = 1
         index = 0
         parent.each do |child|
-          if(!(child.kind_of?(PatternContainer)) && (child.or?))
+          if(child.or?)
             permutations *= child.size
             ors << child
           else
@@ -159,9 +158,11 @@ module Ruleby
 
     class Container < Array
       attr_accessor :kind
+      
       def initialize(kind)
         @kind = kind
       end
+      
       def build(builder)
         if self.or?
           # OrContainers are never built, they just contain containers that
@@ -172,11 +173,19 @@ module Ruleby
           x.build builder
         end
       end
+      
       def or?
         return kind == :or
       end
+      
       def and?
         return kind == :and
+      end
+      
+      def process_tree
+        each_with_index do |c,i|
+          yield(c,i)
+        end
       end
     end
     
@@ -203,6 +212,18 @@ module Ruleby
       
       def build(builder)
         builder.when(*@condition)
+      end
+      
+      def process_tree
+        # there is no tree to process
+      end
+      
+      def or?
+        false
+      end
+      
+      def and?
+        false
       end
     end
 
