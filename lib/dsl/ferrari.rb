@@ -52,23 +52,7 @@ module Ruleby
       return container
     end
     
-    class RulesContainer < Array
-      def process_tree(container)
-        has_child_or = false
-        container.uniq!
-        container.process_tree do |c, i|
-          if container[i].kind_of?(Container)
-            process_tree(container[i])
-            if container[i].or?
-              has_child_or = true
-            end
-          end
-        end
-        if has_child_or
-          transform_or(container)     
-        end
-      end
-      
+    class RulesContainer < Array      
       def transform_or(parent)
         ors = []
         others = []
@@ -135,8 +119,10 @@ module Ruleby
       
       def build(name,options,engine,&block)
         rules = []        
-        self.each_with_index do |x, i|
-          process_tree(x)
+        self.each do |x|          
+          x.process_tree do |c|
+            transform_or(c)     
+          end
         end
         container = self
         ands = handle_branching(container)
@@ -182,28 +168,16 @@ module Ruleby
         return kind == :and
       end
       
-      def process_tree
-        each_with_index do |c,i|
-          yield(c,i)
-        end
+      def process_tree(&block)
+        has_or_child = false
+        uniq!
+        each do |c|          
+          has_or_child = true if (c.process_tree(&block) or c.or?)
+        end        
+        yield(self) if (has_or_child)
+        return has_or_child
       end
     end
-    
-    # class AndContainer < Array      
-    #       def build(builder)
-    #         self.each do |x|
-    #           x.build builder
-    #         end
-    #       end
-    #     end
-    # 
-    #     class OrContainer < Array      
-    #       def build(builder)
-    #         OrContainers are never built, they just contain containers that
-                # will be transformed into AndContainers.
-    #          raise 'Invalid Syntax'
-    #       end
-    #     end
     
     class PatternContainer
       def initialize(condition)
@@ -216,6 +190,7 @@ module Ruleby
       
       def process_tree
         # there is no tree to process
+        false
       end
       
       def or?
