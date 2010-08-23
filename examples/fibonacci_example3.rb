@@ -28,8 +28,9 @@ end
 
 include Ruleby::RuleHelper
 #RULES
+rules = []
 # Bootstrap1
-bootstrap1_rule = rule  :Bootstrap1,  {:priority => 4},
+rules += rule  :Bootstrap1,  {:priority => 4},
     [Fibonacci, :f, m.value == -1, m.sequence == 1 ] do |vars, engine|  
       vars[:f].value = 1
       engine.modify vars[:f]
@@ -37,7 +38,7 @@ bootstrap1_rule = rule  :Bootstrap1,  {:priority => 4},
   end  
 
   # Recurse
-recurse_rule = rule :Recurse, {:priority => 3},
+rules += rule :Recurse, {:priority => 3},
     [Fibonacci, :f, m.value == -1] do |vars, engine|   
       f2 = Fibonacci.new(vars[:f].sequence - 1)
       engine.assert f2
@@ -45,7 +46,7 @@ recurse_rule = rule :Recurse, {:priority => 3},
   end  
 
   # Bootstrap2
-bootstrap2_rule = rule :Bootstrap2, 
+rules += rule :Bootstrap2, 
     [Fibonacci, :f, m.value == -1 , m.sequence == 2] do |vars, engine|    
       vars[:f].value = 1       
       engine.modify vars[:f]
@@ -53,7 +54,7 @@ bootstrap2_rule = rule :Bootstrap2,
   end
 
   # Calculate
-calculate_rule = rule :Calculate,
+rules += rule :Calculate,
     [Fibonacci,:f1, m.value.not== -1, {m.sequence => :s1}],
     [Fibonacci,:f2, m.value.not== -1, {m.sequence( :s1, &c{ |s2,s1| s2 == s1 + 1 } ) => :s2}],
     [Fibonacci,:f3, m.value == -1, m.sequence(:s2, &c{ |s3,s2| s3 == s2 + 1 }) ] do |vars, engine|
@@ -69,11 +70,9 @@ fib1 = Fibonacci.new(150)
 include Ruleby
 
 engine :engine do |e|  
-  #FibonacciRulebook2.new(e).rules
-  e.assert_rule bootstrap1_rule
-  e.assert_rule recurse_rule
-  e.assert_rule bootstrap2_rule
-  e.assert_rule calculate_rule
+  rules.each do |r|
+    e.assert_rule r
+  end
   e.assert fib1
   e.match       
 end
