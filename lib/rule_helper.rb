@@ -35,16 +35,8 @@ module Ruleby
     def b(variable_name)
       Ruleby::Ferrari::BindingBuilder.new(variable_name)
     end
-
-    def binding(variable_name)
-      b variable_name
-    end
-
+    
     def c(&block)
-      return lambda(&block)
-    end
-
-    def condition(&block)
       return lambda(&block)
     end
 
