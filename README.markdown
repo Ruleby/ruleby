@@ -10,13 +10,11 @@ the forward chaining Rete algorithm. Ruleby provides an internal Domain Specific
 
 Version 
 -------
-0.7
+0.8-SNAPSHOT
 
 Release Notes
 -------------
-+  Fixed a bug that was causing Exceptions in RHS condition blocks to be swallowed
-+  Fixed bug related to the OR and AND functions
-+  Issue that causes incorrect behavior for bindings when using OR function not fixed
+
 
 Mailing List
 ------------

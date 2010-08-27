@@ -1,12 +1,12 @@
 #!/bin/sh
 
-VERSION=0.7
+VERSION=0.8
 
 git branch $VERSION
 
 git push origin $VERSION
 
-sed 's/0.7/0.8/g' Rakefile > Rakefile
+sed 's/0.8/0.9/g' Rakefile > Rakefile
 
 git add Rakefile
 
