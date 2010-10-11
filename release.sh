@@ -6,7 +6,9 @@ git branch $VERSION
 
 git push origin $VERSION
 
-sed 's/0.8/0.9/g' Rakefile > Rakefile
+sed 's/0.8/0.9/g' Rakefile > tmp-Rakefile
+
+mv tmp-Rakefile Rakefile
 
 git add Rakefile
 
