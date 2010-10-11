@@ -293,6 +293,8 @@ module Ruleby
 
     class MethodBuilder  
       public_instance_methods.each do |m|
+        # maybe we shouldn't be undefing object_id.  What are the implications?  Can we make object_id a
+        # pass through to the underlying object's object_id?
         a = [:method_missing, :new, :public_instance_methods, :__send__, :__id__]
         undef_method m.to_sym unless a.include? m.to_sym
       end
