@@ -15,6 +15,7 @@ Version
 Release Notes
 -------------
 
+  + New :collect expression
 
 Mailing List
 ------------

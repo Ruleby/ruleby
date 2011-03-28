@@ -517,43 +517,61 @@ module Ruleby
     def initialize(pattern)
       super
       @collection_memory = Fact.new([], :internal)
-
-      #not really sure what to do about this. might just need to handle nil's
-      @collection_memory.recency = 0
+      @should_modify = false
+      # not really sure what to do about this. might just need to handle nil's
+      # using a puts a limit on how many facts can be asserted before this feature breaks
+      # it might be best to get a handle to WorkingMemory in order to get the real
+#      @collection_memory.recency = 0
     end
 
     def retract(fact)
+      propagate_retract(@collection_memory)
       propagate_assert(fact) do
         @collection_memory.object.delete_if {|a| a == fact.object}
+        @should_modify = false
+      end
+    end
+
+    def propagate_modify(context, out_nodes=@out_nodes)
+      out_nodes.each do |out_node|
+        if out_node.is_a?(TerminalNode)
+          out_node.modify(context)
+        else
+          raise "You can't join to :collect patterns yet!"
+        end
       end
     end
 
     def propagate_assert(fact)
-      propagate_retract(@collection_memory)
-
       if block_given?
         yield fact
       else
         @collection_memory.object << fact
+        @collection_memory.recency = fact.recency
       end
 
-      if @collection_memory.object.size > 0
-        super(MatchContext.new(@collection_memory, create_match_result))
+      if @should_modify
+        propagate_modify(MatchContext.new(@collection_memory, create_match_result))
+      else
+        if @collection_memory.object.size > 0
+          @should_modify = true
+          super(MatchContext.new(@collection_memory, create_match_result))
+        end
       end
     end
 
     private
 
-    def create_match_result(fact=@collection_memory)
+    def create_match_result()
       # create the partial match
       mr = MatchResult.new
       mr.is_match = true
-      mr.recency.push fact.recency
+      mr.recency.push @collection_memory.recency
 
       @pattern.atoms.each do |atom|
-        mr.fact_hash[atom.tag] = fact.id
+        mr.fact_hash[atom.tag] = @collection_memory.id
         if atom == @pattern.head
-          mr[atom.tag] = fact.object
+          mr[atom.tag] = @collection_memory.object
         end
       end
       mr
@@ -793,12 +811,29 @@ module Ruleby
       @rule = rule
       @activations = MultiHash.new  
     end
-    attr_reader:activations
-  
+    #attr_reader:activations
+
+    def activations
+      @activations
+    end
+
     def assert(context)
       match = context.match
       a = Activation.new(@rule.action, match, @@counter)
       @activations.add match.fact_ids, a
+    end
+
+    def modify(context)
+      found = false
+      @activations.each do |id, v|
+        if context.match.fact_ids.sort == id.sort
+          v.replace(context.fact)
+          found = true
+        end
+      end
+      if !found
+        assert(context)
+      end
     end
     
     def retract(fact)
