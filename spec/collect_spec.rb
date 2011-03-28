@@ -306,7 +306,6 @@ describe Ruleby::Core::Engine do
           s.should_not be_nil
           s.size.should == 1
 
-          puts "Array.id = #{s[0].id}"
           a = s[0]
           a.size.should == 5
           a[0].object.class.should == A
