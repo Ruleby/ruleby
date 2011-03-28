@@ -136,7 +136,7 @@ module Ruleby
             mode = :inherits
           end
           
-          deftemplate = Core::DefTemplate.new clazz, mode
+          deftemplate = Core::Template.new clazz, mode
           head = Core::HeadAtom.new tag, deftemplate
 
           atoms = []      

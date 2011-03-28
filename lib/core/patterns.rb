@@ -102,7 +102,7 @@ module Ruleby
   
   class InitialFactPattern < ObjectPattern
     def initialize
-      deftemplate = DefTemplate.new InitialFact, :equals
+      deftemplate = Template.new InitialFact, :equals
       htag = GeneratedTag.new
       head = HeadAtom.new htag, deftemplate
       super(head, [])

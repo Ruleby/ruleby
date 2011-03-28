@@ -233,7 +233,7 @@ module Ruleby
           mode = :inherits
         end
 
-        deftemplate = Core::DefTemplate.new clazz, mode        
+        deftemplate = Core::Template.new clazz, mode
         atoms = []
         @when_counter += 1
         htag = Symbol === args[0] ? args.shift : GeneratedTag.new

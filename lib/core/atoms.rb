@@ -136,7 +136,7 @@ module Ruleby
   # attribute represents a Class type, and the mode defines whether the head 
   # will match only class that are exactly a particular type, or if it will 
   # match classes that inherit that type also.
-  class DefTemplate
+  class Template
     attr_reader :clazz
     attr_reader :mode
     
@@ -146,7 +146,7 @@ module Ruleby
     end    
     
     def ==(df)
-      DefTemplate === df && df.clazz == @clazz && df.mode == @mode
+      Template === df && df.clazz == @clazz && df.mode == @mode
     end    
   end
   
