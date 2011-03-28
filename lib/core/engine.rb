@@ -119,11 +119,15 @@ module Ruleby
     end
     
     def ==(fact)
-      return fact != nil && fact.id == id
+      if fact.is_a? Fact
+        fact != nil && fact.id == id
+      else
+        fact != nil && fact.object_id == id
+      end
     end
     
     def to_s
-      return "[Fact |#{@recency}|#{@object.to_s}]"
+      "[Fact |#{@recency}|#{@object.to_s}]"
     end
   end
   

@@ -51,6 +51,9 @@ module Ruleby
   
   class InheritsPattern < ObjectPattern
   end
+
+  class CollectPattern < ObjectPattern    
+  end
   
   # This class represents a pattern that is looking for the absence of some
   # object (rather than the existence of).  In all respects, it is the same as

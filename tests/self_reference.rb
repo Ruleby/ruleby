@@ -18,12 +18,7 @@ include Ruleby
 module SelfReference
 
   class SelfRefRulebook < Rulebook
-    def rules    
-      rule 'For each Message as :m where #message as :x #&& #status == #:x',
-           'For each Context as :c' do |v|
-        v[:c].inc :rule1
-      end
-      
+    def rules
       rule [Message, :m, {m.message => :x}, m.status == b(:x)],
            [Context, :c] do |v|
         v[:c].inc :rule2
@@ -34,13 +29,7 @@ module SelfReference
            [Context, :c] do |v|
         v[:c].inc :rule3
       end
-      
-      # NOTE references the self class binding is not allowed yet  
-  #    rule 'LeTigreTest',
-  #      [Message, :m, m.status(:m, &c{|s,m| s == m.message})] do |r,v|
-  #        puts 'Success'
-  #    end
-      
+            
     end
   end
   
@@ -57,7 +46,6 @@ module SelfReference
         e.assert Message.new(:HELLO, :GOODBYE)
         e.match  
         
-        assert_equal 1, ctx.get(:rule1)
         assert_equal 1, ctx.get(:rule2)
         assert_equal 1, ctx.get(:rule3)
       end

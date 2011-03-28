@@ -216,12 +216,15 @@ module Ruleby
       def when(*args)      
         clazz = AtomBuilder === args[0] ? nil : args.shift
         is_not = false
+        is_collect = false
         mode = :equals
         while clazz.is_a? Symbol          
           if clazz == :not || clazz == :~
             is_not = true
           elsif clazz == :is_a? || clazz == :kind_of? || clazz == :instance_of?
             mode = :inherits
+          elsif clazz == :collect
+            is_collect = true
           elsif clazz == :exists?
             raise 'The \'exists\' quantifier is not yet supported.'
           end
@@ -259,14 +262,15 @@ module Ruleby
           else
             raise "Invalid condition: #{arg}"
           end
-        end  
+        end
 
         if is_not 
           p = mode==:inherits ? Core::NotInheritsPattern.new(head, atoms) : 
                                 Core::NotPattern.new(head, atoms)
         else
           p = mode==:inherits ? Core::InheritsPattern.new(head, atoms) : 
-                                Core::ObjectPattern.new(head, atoms)
+                                is_collect ? Core::CollectPattern.new(head, atoms) :
+                                             Core::ObjectPattern.new(head, atoms)
         end
         @pattern = @pattern ? Core::AndPattern.new(@pattern, p) : p
       end

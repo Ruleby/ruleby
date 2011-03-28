@@ -200,7 +200,11 @@ module Ruleby
       end
       
       def create_bridge_node(pattern)
-        return BridgeNode.new(pattern)
+        if pattern.kind_of?(CollectPattern)
+          CollectNode.new(pattern)
+        else
+          BridgeNode.new(pattern)
+        end
       end
       
       def create_property_node(atom,forked)
@@ -483,12 +487,14 @@ module Ruleby
   # network, or to the terminal nodes.  It creates a partial match from the
   # pattern and atoms above it in the network.  Thus, there is one bridge node
   # for each pattern (assuming they aren't shared).
-  class BridgeNode < ParentNode 
+  class BaseBridgeNode < ParentNode
     def initialize(pattern)
       super()
       @pattern =  pattern
     end
-  
+  end
+
+  class BridgeNode < BaseBridgeNode
     def propagate_assert(fact)          
       # create the partial match
       mr = MatchResult.new
@@ -505,7 +511,54 @@ module Ruleby
       end
       super(MatchContext.new(fact,mr))
     end
-  end  
+  end
+
+  class CollectNode < BaseBridgeNode
+    def initialize(pattern)
+      super
+      @collection_memory = Fact.new([], :internal)
+
+      #not really sure what to do about this. might just need to handle nil's
+      @collection_memory.recency = 0
+    end
+
+    def retract(fact)
+      propagate_assert(fact) do
+        @collection_memory.object.delete_if {|a| a == fact.object}
+      end
+    end
+
+    def propagate_assert(fact)
+      propagate_retract(@collection_memory)
+
+      if block_given?
+        yield fact
+      else
+        @collection_memory.object << fact
+      end
+
+      if @collection_memory.object.size > 0
+        super(MatchContext.new(@collection_memory, create_match_result))
+      end
+    end
+
+    private
+
+    def create_match_result(fact=@collection_memory)
+      # create the partial match
+      mr = MatchResult.new
+      mr.is_match = true
+      mr.recency.push fact.recency
+
+      @pattern.atoms.each do |atom|
+        mr.fact_hash[atom.tag] = fact.id
+        if atom == @pattern.head
+          mr[atom.tag] = fact.object
+        end
+      end
+      mr
+    end
+  end
     
   # This class is used to plug nodes into the left input of a two-input JoinNode
   class LeftAdapterNode < ParentNode
@@ -549,7 +602,7 @@ module Ruleby
       end
     end
   end
-  
+
   # This class is a two-input node that is used to create a cross-product of the
   # two network branches above it.  It keeps a memory of the left and right 
   # inputs and compares new facts to each.  These nodes make up what is called
