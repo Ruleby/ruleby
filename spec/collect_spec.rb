@@ -5,7 +5,11 @@ class A
 end
 
 class B
-  
+
+end
+
+class C
+
 end
 
 include Ruleby
@@ -27,6 +31,17 @@ class CollectRulebook < Rulebook
     rule [B, :b], [:collect, A, :a] do |v|
       assert v[:a]
       assert Success.new(:left)
+    end
+  end
+
+  def rules_with_chaining
+    rule [:collect, A, :a], [B, :b] do |v|
+      assert v[:a]
+      assert Success.new(:right)
+    end
+
+    rule [C, :c] do |v|
+      assert A.new
     end
   end
 end
@@ -230,6 +245,36 @@ describe Ruleby::Core::Engine do
           a.size.should == 2
           b = subject.retrieve B
           b.size.should == 0
+        end
+      end
+    end
+
+    context "as rule chain" do
+      subject do
+        engine :engine do |e|
+          CollectRulebook.new(e).rules_with_chaining
+        end
+      end
+
+      context "with one step" do
+        before do
+          subject.assert B.new
+          subject.assert C.new
+          subject.match
+        end
+
+        it "should retrieve Success" do
+          s = subject.retrieve Success
+          s.should_not be_nil
+          s.size.should == 1
+
+          s = subject.retrieve Array
+          s.should_not be_nil
+          s.size.should == 1
+
+          a = s[0]
+          a.size.should == 1
+          a[0].object.class.should == A
         end
       end
     end
