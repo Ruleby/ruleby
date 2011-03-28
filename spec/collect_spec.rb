@@ -294,7 +294,6 @@ describe Ruleby::Core::Engine do
         end
 
         it "should retrieve Success" do
-#          pending "i'm not really sure what this is supposed to do"
           s = subject.retrieve Success
           s.should_not be_nil
           s.size.should == 1
