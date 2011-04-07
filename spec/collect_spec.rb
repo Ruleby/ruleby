@@ -1,11 +1,14 @@
 require 'spec_helper'
 
 class A
-
+  attr :value, true
+  def initialize(v=nil); @value = v; end
 end
 
 class B
-
+  attr :value1, true
+  attr :value2, true
+  def initialize(v1=nil, v2=nil); @value1 = v1; @value2 = v2; end
 end
 
 class C
@@ -18,6 +21,18 @@ class CollectRulebook < Rulebook
   def rules_with_one_pattern
     rule [:collect, A, :a] do |v|
       assert v[:a]
+      assert Success.new
+    end
+  end
+
+  def rules_with_one_pattern_and_other_conditions
+    rule [:collect, A, :a, m.value == "foo"] do |v|
+      assert v[:a]
+      assert Success.new
+    end
+
+    rule [:collect, B, :b, m.value1 == "foo", m.value2 == "bar"] do |v|
+      assert v[:b]
       assert Success.new
     end
   end
@@ -214,6 +229,142 @@ describe Ruleby::Core::Engine do
         end
 
         it_should_behave_like "one :collect A rule and two As"
+      end
+    end
+
+    context "as one pattern and other conditions" do
+      subject do
+        engine :engine do |e|
+          CollectRulebook.new(e).rules_with_one_pattern_and_other_conditions
+        end
+      end
+
+      context "with one A('foo')" do
+        before do
+          subject.assert A.new("foo")
+          subject.match
+        end
+
+        it_should_behave_like "one :collect A rule and one A"
+      end
+
+      context "with more than one A('foo')" do
+        before do
+          subject.assert A.new("foo")
+          subject.assert A.new("foo")
+          subject.match
+        end
+
+        it_should_behave_like "one :collect A rule and two As"
+      end
+
+      context "with one A('foo') and one A(nil)" do
+        before do
+          subject.assert A.new("foo")
+          subject.assert A.new
+          subject.match
+        end
+
+        it "should retrieve Success" do
+          s = subject.retrieve Success
+          s.should_not be_nil
+          s.size.should == 1
+
+          s = subject.retrieve Array
+          s.should_not be_nil
+          s.size.should == 1
+
+          a = s[0]
+          a.size.should == 1
+          a[0].object.class.should == A
+        end
+      end
+
+      context "with more than one A('foo') and one A(nil)" do
+        before do
+          subject.assert A.new("foo")
+          subject.assert A.new("foo")
+          subject.assert A.new
+          subject.match
+        end
+
+        it "should retrieve Success" do
+          s = subject.retrieve Success
+          s.should_not be_nil
+          s.size.should == 1
+
+          s = subject.retrieve Array
+          s.should_not be_nil
+          s.size.should == 1
+
+          a = s[0]
+          a.size.should == 2
+          a[0].object.class.should == A
+          a[1].object.class.should == A
+        end
+      end
+
+      context "with one A(nil)" do
+        before do
+          subject.assert A.new
+          subject.match
+        end
+
+        it "should not succeed" do
+          s = subject.retrieve Success
+          s.should_not be_nil
+          s.size.should == 0
+        end
+      end
+
+      context "with one B(foo,nil)" do
+        before do
+          subject.assert B.new("foo")
+          subject.match
+        end
+
+        it "should not succeed" do
+          s = subject.retrieve Success
+          s.should_not be_nil
+          s.size.should == 0
+        end
+      end
+
+      context "with one B(foo,bar)" do
+        before do
+          subject.assert B.new("foo", "bar")
+          subject.match
+        end
+
+        it "should not succeed" do
+          s = subject.retrieve Success
+          s.should_not be_nil
+          s.size.should == 1
+        end
+      end
+
+      context "with one B(foo,bar) and one B(foo,nil)" do
+        before do
+          subject.assert B.new("foo", "bar")
+          subject.assert B.new("foo", "bar")
+          subject.assert B.new("foo")
+          subject.match
+        end
+
+        it "should succeed" do
+          s = subject.retrieve Success
+          s.should_not be_nil
+          s.size.should == 1
+
+          s = subject.retrieve Array
+          s.should_not be_nil
+          s.size.should == 1
+
+          a = s[0]
+          a.size.should == 2
+          a[0].object.class.should == B
+          a[1].object.class.should == B
+        end
       end
     end
 
