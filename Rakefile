@@ -14,7 +14,7 @@ require 'rake/testtask'
 spec = Gem::Specification.new do |s|
 
     s.name              = "ruleby"
-    s.version           = "0.8.b2"
+    s.version           = "0.8.b3"
     s.authors           = [ "Joe Kutner", "Matt Smith" ]
     s.email             = 'jpkutner@gmail.com'
     s.homepage          = "http://ruleby.org"
