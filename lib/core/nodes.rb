@@ -534,11 +534,7 @@ module Ruleby
 
     def propagate_modify(context, out_nodes=@out_nodes)
       out_nodes.each do |out_node|
-        if out_node.is_a?(TerminalNode)
-          out_node.modify(context)
-        else
-          raise "You can't join to :collect patterns yet!"
-        end
+        out_node.modify(context)
       end
     end
 
@@ -597,6 +593,12 @@ module Ruleby
         o.retract_resolve(match)
       end
     end
+
+    def modify(context)
+      @out_nodes.each do |out_node|
+        out_node.modify_left(context)
+      end
+    end
   end
   
   # This class is used to plug nodes into the right input of a two-input 
@@ -617,6 +619,12 @@ module Ruleby
     def retract_resolve(match)
       @out_nodes.each do |o|
         o.retract_resolve(match)
+      end
+    end
+
+    def modify(context)
+      @out_nodes.each do |out_node|
+        out_node.modify_right(context)
       end
     end
   end
@@ -666,7 +674,17 @@ module Ruleby
           propagate_assert(new_context)
         end
       end
-    end    
+    end
+
+    def modify_left(context)
+      @left_memory[context.fact.id] = [context]
+      # you can't ref :collect patterns, so there should be anything to do on the right-memory
+    end
+
+    def modify_right(context)
+      @right_memory[context.fact.id] = context
+      # you can't ref :collect patterns, so there should be anything to do on the left-memory
+    end
         
     def to_s
       return "#{self.class}:#{object_id} | #{@left_memory.values} | #{@right_memory}"

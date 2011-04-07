@@ -67,7 +67,7 @@ module Ruleby
     # string that is unique for each instance of this class.
     @@tag_counter = 0
 
-    # every generated tag will be prefixed with this string
+    # every generated tag will be prefixed with this string.  This isn't full-proof.
     @@unique_seed = 'unique_seed'
 
     def initialize()
