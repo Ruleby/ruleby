@@ -79,6 +79,11 @@ module Ruleby
     def ==(a2)
       return a2 != nil && @action == a2.action && @match == a2.match
     end
+
+    def modify(match)
+      @match = match
+      # should we update recency, too? 
+    end
     
     def to_s
       return "[#{@action.name}-#{object_id}|#{@counter}|#{@action.priority}|#{@match.recency.join(',')}|#{@match.to_s}] "

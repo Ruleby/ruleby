@@ -22,6 +22,13 @@ class CollectRulebook < Rulebook
     end
   end
 
+  def rules_with_one_pattern_inside_and
+    rule AND([:collect, A, :a]) do |v|
+      assert v[:a]
+      assert Success.new
+    end
+  end
+
   def rules_with_two_collect_patterns_of_same_type
     rule [:collect, A, :a1], [:collect, A, :a2] do |v|
       assert v[:a1]
@@ -86,6 +93,26 @@ end
 describe Ruleby::Core::Engine do
 
   describe ":collect" do
+
+    shared_examples_for "not patterns with [:collect, A] and [:not, B] when there is a B" do
+      it "should not match" do
+        s = subject.retrieve Success
+        s.should_not be_nil
+        s.size.should == 0
+      end
+
+      it "should match once B is retracted" do
+        a = subject.retrieve B
+        subject.retract a[0]
+
+        subject.match
+
+        s = subject.retrieve Success
+        s.size.should == 1
+        a = subject.retrieve A
+        a.size.should == 2
+      end
+    end
 
     shared_examples_for "one :collect A rule and one A" do
       it "should retrieve Success" do
@@ -190,6 +217,33 @@ describe Ruleby::Core::Engine do
       end
     end
 
+    context "as one pattern inside AND" do
+      subject do
+        engine :engine do |e|
+          CollectRulebook.new(e).rules_with_one_pattern_inside_and
+        end
+      end
+
+      context "with one A" do
+        before do
+          subject.assert A.new
+          subject.match
+        end
+
+        it_should_behave_like "one :collect A rule and one A"
+      end
+
+      context "with more than one A" do
+        before do
+          subject.assert A.new
+          subject.assert A.new
+          subject.match
+        end
+
+        it_should_behave_like "one :collect A rule and two As"
+      end
+    end
+
     context "as two patterns of same type" do
       subject do
         engine :engine do |e|
@@ -274,7 +328,7 @@ describe Ruleby::Core::Engine do
       end
     end
 
-    context "as one pattern" do
+    context "as one pattern and a not on left" do
       subject do
         engine :engine do |e|
           CollectRulebook.new(e).rules_with_one_pattern_and_a_not_on_left
@@ -308,15 +362,22 @@ describe Ruleby::Core::Engine do
           subject.match
         end
 
-        it "should not match" do
-          s = subject.retrieve Success
-          s.should_not be_nil
-          s.size.should == 0
+        it_should_behave_like "not patterns with [:collect, A] and [:not, B] when there is a B"
+      end
+
+      context "with more than one A and a B" do
+        before do
+          subject.assert B.new
+          subject.assert A.new
+          subject.assert A.new
+          subject.match
         end
+
+        it_should_behave_like "not patterns with [:collect, A] and [:not, B] when there is a B"
       end
     end
 
-    context "as one pattern" do
+    context "as one pattern and a not on right" do
       subject do
         engine :engine do |e|
           CollectRulebook.new(e).rules_with_one_pattern_and_a_not_on_right
@@ -350,11 +411,18 @@ describe Ruleby::Core::Engine do
           subject.match
         end
 
-        it "should not match" do
-          s = subject.retrieve Success
-          s.should_not be_nil
-          s.size.should == 0
+        it_should_behave_like "not patterns with [:collect, A] and [:not, B] when there is a B"
+      end
+
+      context "with more than one A and a B" do
+        before do
+          subject.assert B.new
+          subject.assert A.new
+          subject.assert A.new
+          subject.match
         end
+
+        it_should_behave_like "not patterns with [:collect, A] and [:not, B] when there is a B"
       end
     end
 
@@ -394,8 +462,8 @@ describe Ruleby::Core::Engine do
       context "with more than one A" do
         before do
           subject.assert A.new
-          subject.assert A.new
           subject.assert B.new
+          subject.assert A.new
           subject.match
         end
 
@@ -515,9 +583,9 @@ describe Ruleby::Core::Engine do
       context "with more than one A" do
         before do
           subject.assert A.new
-          subject.assert A.new
           subject.assert B.new
           subject.assert C.new
+          subject.assert A.new
           subject.match
         end
 

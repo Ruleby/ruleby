@@ -324,6 +324,16 @@ module Ruleby
         out_node.assert(assertable)
       end
     end
+
+    def modify(assertable)
+      raise "Modify not supported by default - its only used for :collect.  This must be a bug"
+    end
+
+    def propagate_modify(assertable,out_nodes=@out_nodes)
+      out_nodes.each do |out_node|
+        out_node.modify(assertable)
+      end
+    end
   end
   
   # This is a base class for all single input nodes that match facts based on
@@ -532,12 +542,6 @@ module Ruleby
       end
     end
 
-    def propagate_modify(context, out_nodes=@out_nodes)
-      out_nodes.each do |out_node|
-        out_node.modify(context)
-      end
-    end
-
     def propagate_assert(fact)
       if block_given?
         yield fact
@@ -679,11 +683,17 @@ module Ruleby
     def modify_left(context)
       @left_memory[context.fact.id] = [context]
       # you can't ref :collect patterns, so there should be anything to do on the right-memory
+      #propagate_modify(context)
+
+      # TODO something needs to happen here - but i'm not sure what!
     end
 
     def modify_right(context)
       @right_memory[context.fact.id] = context
       # you can't ref :collect patterns, so there should be anything to do on the left-memory
+      #propagate_modify(context)
+
+      # TODO something needs to happen here - but i'm not sure what!
     end
         
     def to_s
@@ -741,8 +751,7 @@ module Ruleby
   
   # This node class is used when a rule is looking for a fact that does not 
   # exist.  It is a two-input node, and thus has some of the properties of the
-  # JoinNode.  NOTE it has not clear how this will work if the NotPattern is
-  # declared as the first pattern in a rule.
+  # JoinNode.
   class NotNode < JoinNode
     def initialize
       super
@@ -788,7 +797,7 @@ module Ruleby
       end
     end
     
-    def assert_right(context)                    
+    def assert_right(context)
       @right_memory[context.fact.id] = context
       if @ref_nodes.empty?
         @left_memory.values.flatten.each do |left_context|
@@ -803,7 +812,7 @@ module Ruleby
         end
       end
     end
-    
+
     # NOTE this returns a boolean, while the other classes return a MatchResult
     def match_ref_nodes(left_context,right_context)
       @ref_nodes.each do |ref_node|
@@ -845,11 +854,11 @@ module Ruleby
       found = false
       @activations.each do |id, v|
         if context.match.fact_ids.sort == id.sort
-          v.replace(context.fact)
+          v.modify(context.match)
           found = true
         end
       end
-      if !found
+      if !found and context.match.is_match
         assert(context)
       end
     end
