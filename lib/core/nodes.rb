@@ -29,9 +29,8 @@ module Ruleby
     # This method is invoked when a new rule is added to the system.  The
     # rule is processed and the appropriate nodes are added to the network.
     def assert_rule(rule)
-      terminal_node = TerminalNode.new rule
-      terminal_node.bucket = @bucket
-      build_network(rule.pattern, terminal_node)             
+      terminal_node = TerminalNode.new @bucket, rule
+      build_network(rule.pattern, terminal_node)
       @terminal_nodes.push terminal_node
     end    
             
@@ -172,9 +171,9 @@ module Ruleby
       #   side - if the out_node is a JoinNode, this marks the side 
       def create_join_node(pattern, out_node, side)      
         if (pattern.right_pattern.kind_of?(NotPattern))  
-          join_node = NotNode.new 
+          join_node = NotNode.new(@bucket)
         else
-          join_node = JoinNode.new    
+          join_node = JoinNode.new(@bucket)
         end
         
         @join_nodes.push(join_node)      
@@ -190,49 +189,49 @@ module Ruleby
       
       def create_type_node(pattern)
         if InheritsPattern === pattern
-          node = InheritsNode.new pattern.atoms[0]
+          node = InheritsNode.new(@bucket, pattern.atoms[0])
           @inherit_nodes.each do |inode|
             return inode if inode.shareable? node
           end
           @inherit_nodes << node
           return node
         else
-          return (@type_node ||= TypeNode.new pattern.atoms[0])
+          return (@type_node ||= TypeNode.new(@bucket, pattern.atoms[0]))
         end
       end
       
       def create_bridge_node(pattern)
         if pattern.kind_of?(CollectPattern)
-          CollectNode.new(pattern)
+          CollectNode.new(@bucket, pattern)
         else
-          BridgeNode.new(pattern)
+          BridgeNode.new(@bucket, pattern)
         end
       end
       
       def create_property_node(atom,forked)
-        node = atom.kind_of?(EqualsAtom) ? EqualsNode.new(atom) : PropertyNode.new(atom)
+        node = atom.kind_of?(EqualsAtom) ? EqualsNode.new(@bucket, atom) : PropertyNode.new(@bucket, atom)
         @atom_nodes.each {|n| return n if n.shareable? node} unless forked
         @atom_nodes.push node
         return node
       end
       
       def create_self_reference_node(atom)   
-        node = SelfReferenceNode.new atom
+        node = SelfReferenceNode.new(@bucket, atom)
         @atom_nodes.push node
         return node
       end
       
       def create_reference_node(atom)      
-        node = ReferenceNode.new atom
+        node = ReferenceNode.new(@bucket, atom)
         @atom_nodes.push node
         return node
       end
       
       def create_adapter_node(side)
         if side == :left
-          return LeftAdapterNode.new
+          return LeftAdapterNode.new(@bucket)
         else
-          return RightAdapterNode.new
+          return RightAdapterNode.new(@bucket)
         end
       end
       
@@ -270,7 +269,10 @@ module Ruleby
   # Base Node class used by all nodes in the network that do some kind 
   # of matching.
   class Node < Printable
-    attr_accessor :bucket
+    def initialize(bucket)
+      super()
+      @bucket = bucket
+    end
 
     # This method determines if all common tags have equal values.  If any 
     # values are not equal then the method returns false.
@@ -291,7 +293,7 @@ module Ruleby
   # propagating match results.
   class ParentNode < Node    
     attr_reader :child_nodes
-    def initialize()
+    def initialize(bucket)
       super
       @out_nodes = []   
     end   
@@ -345,8 +347,8 @@ module Ruleby
   # up the Alpha network.
   class AtomNode < ParentNode  
     attr_reader:atom    
-    def initialize(atom)
-      super()
+    def initialize(bucket, atom)
+      super(bucket)
       @atom = atom 
     end
     
@@ -367,7 +369,7 @@ module Ruleby
   # that inherits this class does not evaluate each condition, instead it looks
   # up the expected value in the hash, and gets a list of out_nodes.
   class HashedNode < AtomNode
-    def initialize(atom)
+    def initialize(bucket, atom)
       super
       @values = {}
       @values.default = []
@@ -502,8 +504,8 @@ module Ruleby
   # pattern and atoms above it in the network.  Thus, there is one bridge node
   # for each pattern (assuming they aren't shared).
   class BaseBridgeNode < ParentNode
-    def initialize(pattern)
-      super()
+    def initialize(bucket, pattern)
+      super(bucket)
       @pattern =  pattern
     end
   end
@@ -528,7 +530,7 @@ module Ruleby
   end
 
   class CollectNode < BaseBridgeNode
-    def initialize(pattern)
+    def initialize(bucket, pattern)
       super
       @collection_memory = Fact.new([], :internal)
       @should_modify = false
@@ -645,7 +647,7 @@ module Ruleby
     
     attr:ref_nodes,true
     
-    def initialize
+    def initialize(bucket)
       super
       @left_memory = {}
       @right_memory = {} 
@@ -757,7 +759,7 @@ module Ruleby
   # exist.  It is a two-input node, and thus has some of the properties of the
   # JoinNode.
   class NotNode < JoinNode
-    def initialize
+    def initialize(bucket)
       super
     end
     
@@ -836,8 +838,8 @@ module Ruleby
   # activations that have been generated by the network.
   class TerminalNode < Node
 
-    def initialize(rule)
-      super()
+    def initialize(bucket, rule)
+      super(bucket)
       @rule = rule
       @activations = MultiHash.new  
     end
@@ -896,8 +898,8 @@ module Ruleby
     attr_reader :errors, :counter
 
     def intitialize
-      @errors = []
-      @counter = 0
+      clear_errors
+      reset_counter
     end
 
     def increment_counter
@@ -906,6 +908,14 @@ module Ruleby
 
     def reset_counter
       @counter = 0
+    end
+
+    def add_error(error)
+      @errors << error
+    end
+
+    def clear_errors
+      @errors = []
     end
   end
 
