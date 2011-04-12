@@ -55,6 +55,14 @@ module Ruleby
     def reset_counter
       @bucket.reset_counter
     end
+
+    def errors
+      @bucket.errors
+    end
+
+    def clear_errors
+      @bucket.clear_errors
+    end
   
     # When invoked, this method returns a list of all Action|MatchContext pairs 
     # as Activations.  The list is generated when facts and rules are asserted, 
@@ -313,12 +321,20 @@ module Ruleby
     
     def retract(fact)
       propagate_retract(fact)
-    end    
+    end
+
+    def propagate(propagation_method, object_to_propagate, out_nodes=@out_nodes)
+      out_nodes.each do |out_node|
+        begin
+          out_node.send(propagation_method, object_to_propagate)
+        rescue => e
+          @bucket.add_error Error.new(:unknown, :error, {:type => e.class, :message => e.message})
+        end
+      end
+    end
     
     def propagate_retract(fact,out_nodes=@out_nodes)
-      out_nodes.each do |out_node|
-        out_node.retract(fact)
-      end
+      propagate(:retract, fact, out_nodes)
     end
     
     def assert(assertable)
@@ -326,9 +342,7 @@ module Ruleby
     end
     
     def propagate_assert(assertable,out_nodes=@out_nodes)
-      out_nodes.each do |out_node|
-        out_node.assert(assertable)
-      end
+      propagate(:assert, assertable, out_nodes)
     end
 
     def modify(assertable)
@@ -336,9 +350,7 @@ module Ruleby
     end
 
     def propagate_modify(assertable,out_nodes=@out_nodes)
-      out_nodes.each do |out_node|
-        out_node.modify(assertable)
-      end
+      propagate(:modify, assertable, out_nodes)
     end
   end
   
@@ -399,10 +411,13 @@ module Ruleby
     
     def assert(fact)     
       k = fact.object.send(@atom.method)
-      propagate_assert fact, @values[k] 
+      propagate_assert fact, @values[k]
     rescue NoMethodError => e
-      # If the method does not exist, it is the same as if it evaluted to 
-      # false, and the network traverse stops
+      @bucket.add_error Error.new(:no_method, :warn, {
+          :object => fact.object.to_s,
+          :method => e.name,
+          :message => e.message
+      })
     end
   end
   
@@ -428,23 +443,28 @@ module Ruleby
   class PropertyNode < AtomNode
     def assert(fact)
       begin
-        val = fact.object.send(@atom.method)   
+        val = fact.object.send(@atom.method)
       rescue NoMethodError => e
-        # If the method does not exist, it is the same as if it evaluted to 
-        # false, and the network traverse stops
+        @bucket.add_error Error.new(:no_method, :warn, {
+            :object => fact.object.to_s,
+            :method => e.name,
+            :message => e.message
+        })
         return
       end
       begin
         super if @atom.proc.call(val)
       rescue Exception => e
-        # There is a bug in Ruby MRI that goes away when we call print.  Even if the following
-        # line of code is never executed at runtime.  The problem does not exist in JRuby
-        print ''
-        raise ProcessInvocationError.new(e), e.message
+        @bucket.add_error Error.new(:proc_call, :error, {
+            :object => fact.object.to_s,
+            :method => @atom.method,
+            :value => val.to_s,
+            :message => e.message
+        })
       end
     end
   end
-  
+
   # This node class is used for matching properties of a fact where the 
   # condition is a simple '=='.  Instead of evaluating the condition, this node
   # will pull from a hash.  This makes it significatly fast when it is shared.
@@ -475,9 +495,14 @@ module Ruleby
           m.variables[@atom.tag] = val 
           return m
         end
-      rescue NoMethodError => e    
-        # If the method does not exist, it is the same as if it evaluted to 
-        # false, and the network traverse stops
+      rescue NoMethodError => e
+        # I'd rather push this up to a high level, but its got to happen down low
+        @bucket.add_error Error.new(:no_method, :warn, {
+            :object => "?",
+            :method => e.name,
+            :args => e.args,
+            :message => e.message
+        })
       end
       return MatchResult.new
     end  
@@ -587,27 +612,19 @@ module Ruleby
   # This class is used to plug nodes into the left input of a two-input JoinNode
   class LeftAdapterNode < ParentNode
     def propagate_assert(context)
-      @out_nodes.each do |out_node|
-        out_node.assert_left(context)
-      end
+      propagate(:assert_left, context)
     end
     
     def propagate_retract(fact)
-      @out_nodes.each do |out_node|
-        out_node.retract_left(fact)
-      end
+      propagate(:retract_left, fact)
     end
     
     def retract_resolve(match)
-      @out_nodes.each do |o|
-        o.retract_resolve(match)
-      end
+      propagate(:retract_resolve, match)
     end
 
     def modify(context)
-      @out_nodes.each do |out_node|
-        out_node.modify_left(context)
-      end
+      propagate(:modify_left, context)
     end
   end
   
@@ -615,27 +632,19 @@ module Ruleby
   # JoinNode
   class RightAdapterNode < ParentNode    
     def propagate_assert(context)
-      @out_nodes.each do |out_node|
-        out_node.assert_right(context)
-      end
+      propagate(:assert_right, context)
     end
-  
+
     def propagate_retract(fact)
-      @out_nodes.each do |out_node|
-        out_node.retract_right(fact)
-      end
-    end  
-      
+      propagate(:retract_right, fact)
+    end
+
     def retract_resolve(match)
-      @out_nodes.each do |o|
-        o.retract_resolve(match)
-      end
+      propagate(:retract_resolve, match)
     end
 
     def modify(context)
-      @out_nodes.each do |out_node|
-        out_node.modify_right(context)
-      end
+      propagate(:modify_right, context)
     end
   end
 
@@ -749,9 +758,7 @@ module Ruleby
       end
       
       def propagate_retract_resolve(match)
-        @out_nodes.each do |o|
-          o.retract_resolve(match)
-        end
+        propagate(:retract_resolve, match)
       end
   end
   
@@ -897,7 +904,7 @@ module Ruleby
   class NetworkBucket
     attr_reader :errors, :counter
 
-    def intitialize
+    def initialize
       clear_errors
       reset_counter
     end

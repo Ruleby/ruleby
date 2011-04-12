@@ -187,6 +187,16 @@ module Ruleby
     end
   end
 
+  class Error
+    attr_reader :type, :level, :details
+
+    def initialize(type, level, details={})
+      @type = type
+      @details = details
+      @level = level
+    end
+  end
+
   # This is the core class of the library.  A new rule engine is created by 
   # instantiating it.  Each rule engine has one inference engine, one rule set
   # and one working memory.
@@ -255,7 +265,13 @@ module Ruleby
         end
       end
     end
-    
+
+    def extract_errors
+      e = @root.errors
+      @root.clear_errors
+      e
+    end
+
     def print
       @working_memory.print
       @root.print
