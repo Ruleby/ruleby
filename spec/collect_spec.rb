@@ -103,6 +103,12 @@ class CollectRulebook < Rulebook
       assert A.new
     end
   end
+
+  def rules_with_binding
+    rule [:collect, A, :a], [B, :b, m.value1(:a, &c{|v1, a| a.size > 0 and a[0].object.value == v1})] do |v|
+      assert Success.new
+    end
+  end
 end
 
 describe Ruleby::Core::Engine do
@@ -865,6 +871,48 @@ describe Ruleby::Core::Engine do
           a = s[0]
           a.size.should == 5
           a[0].object.class.should == A
+        end
+      end
+    end
+
+    context "with rule binding" do
+      subject do
+        engine :engine do |e|
+          CollectRulebook.new(e).rules_with_binding
+        end
+      end
+
+      context "with one A and one B that have == values" do
+        before do
+          a = A.new
+          a.value = 1
+          b = B.new
+          b.value1 = 1
+          subject.assert a
+          subject.assert b
+          subject.match
+        end
+
+        it "should retrieve Success" do
+          s = subject.retrieve Success
+          s.size.should == 1
+        end
+      end
+
+      context "with one A and one B that have != values" do
+        before do
+          a = A.new
+          a.value = 1
+          b = B.new
+          b.value1 = 42
+          subject.assert a
+          subject.assert b
+          subject.match
+        end
+
+        it "should retrieve Success" do
+          s = subject.retrieve Success
+          s.size.should == 0
         end
       end
     end
