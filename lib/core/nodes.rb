@@ -697,10 +697,13 @@ module Ruleby
 
     def modify_left(context)
       @left_memory[context.fact.id] = [context]
-      # you can't ref :collect patterns, so there should be anything to do on the right-memory
-      #propagate_modify(context)
-
-      # TODO something needs to happen here - but i'm not sure what!
+      @right_memory.values.each do |right_context|
+        mr = match_ref_nodes(context,right_context)
+        if (mr.is_match)
+          new_context = MatchContext.new context.fact, mr
+          propagate_modify(new_context)
+        end
+      end
     end
 
     def modify_right(context)
@@ -824,6 +827,12 @@ module Ruleby
           end
         end
       end
+    end
+
+    def modify_left(context)
+      @left_memory[context.fact.id] = context
+
+      # TODO something needs to happen here - but i'm not sure what!
     end
 
     # NOTE this returns a boolean, while the other classes return a MatchResult

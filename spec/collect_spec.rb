@@ -108,6 +108,21 @@ class CollectRulebook < Rulebook
     rule [:collect, A, :a], [B, :b, m.value1(:a, &c{|v1, a| a.size > 0 and a[0].object.value == v1})] do |v|
       assert Success.new
     end
+
+    rule [:collect, A, :a], [B, :b, m.value1(:a, &c{|v1, a| a.size > 1 and a[0].object.value == v1})] do |v|
+      assert Success.new
+    end
+  end
+
+  def rules_with_chaining_and_binding
+    rule [:collect, A, :a], [B, :b, m.value1(:a, &c{|v1, a| a.size > 0})] do |v|
+      assert v[:a]
+      assert Success.new
+    end
+
+    rule [C, :c] do |v|
+      assert A.new
+    end
   end
 end
 
@@ -226,7 +241,7 @@ describe Ruleby::Core::Engine do
 
         it_should_behave_like "one :collect A rule and one A"
       end
-        
+
       context "with more than one A" do
         before do
           subject.assert A.new
@@ -888,6 +903,23 @@ describe Ruleby::Core::Engine do
           a.value = 1
           b = B.new
           b.value1 = 1
+          subject.assert b
+          subject.assert a
+          subject.match
+        end
+
+        it "should retrieve Success" do
+          s = subject.retrieve Success
+          s.size.should == 1
+        end
+      end
+
+      context "with one A and one B that have == values asserted in reverse order" do
+        before do
+          a = A.new
+          a.value = 1
+          b = B.new
+          b.value1 = 1
           subject.assert a
           subject.assert b
           subject.match
@@ -913,6 +945,75 @@ describe Ruleby::Core::Engine do
         it "should retrieve Success" do
           s = subject.retrieve Success
           s.size.should == 0
+        end
+      end
+
+      context "with one A and one B that have != values" do
+        before do
+          a1 = A.new
+          a1.value = 1
+          b1 = B.new
+          b1.value1 = 1
+          a2 = A.new
+          a2.value = 1
+          subject.assert a1
+          subject.assert b1
+          subject.assert a2
+          subject.match
+        end
+
+        it "should retrieve Success" do
+          s = subject.retrieve Success
+          s.size.should == 2
+        end
+      end
+    end
+
+
+    context "as rule chain with binding" do
+      subject do
+        engine :engine do |e|
+          CollectRulebook.new(e).rules_with_chaining_and_binding
+        end
+      end
+
+      context "with one B and one C" do
+        before do
+          subject.assert B.new
+          subject.assert C.new
+          subject.match
+        end
+
+        it "should retrieve Success" do
+          subject.retrieve(Success).size.should == 1
+        end
+      end
+
+      context "with many C's and two B" do
+        before do
+          subject.assert C.new
+          subject.assert C.new
+          subject.assert B.new
+          subject.assert C.new
+          subject.assert C.new
+          subject.assert C.new
+          subject.assert B.new
+          subject.match
+        end
+
+        it "should retrieve Success" do
+          subject.retrieve(Success).size.should == 2
+
+          s = subject.retrieve Array
+          s.size.should == 2
+
+          a = s[0]
+          a.size.should == 5
+          a.each {|o| o.object.class.should == A }
+
+          a = s[1]
+          a.size.should == 5
+          a.each {|o| o.object.class.should == A }
         end
       end
     end
