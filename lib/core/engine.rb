@@ -266,10 +266,12 @@ module Ruleby
       end
     end
 
-    def extract_errors
-      e = @root.errors
+    def errors
+      @root.errors
+    end
+
+    def clear_errors
       @root.clear_errors
-      e
     end
 
     def print
