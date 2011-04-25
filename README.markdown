@@ -10,7 +10,7 @@ the forward chaining Rete algorithm. Ruleby provides an internal Domain Specific
 
 Version 
 -------
-0.8.b6
+0.8.b7
 
 Release Notes
 -------------
