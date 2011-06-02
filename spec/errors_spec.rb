@@ -42,14 +42,15 @@ describe Ruleby::Core::Engine do
           r = subject.retrieve Success
           r.size.should == 0
 
-          errors = subject.extract_errors
+          errors = subject.errors
           errors.should_not be_nil
           errors.size.should == 1
           errors[0].type.should == :no_method
           errors[0].details[:method].should == :foobar
           errors[0].details[:object].should match /#<A:(.+)>/
+          subject.clear_errors
 
-          subject.extract_errors.should == []
+          subject.errors.should == []
         end
       end
 
@@ -71,12 +72,13 @@ describe Ruleby::Core::Engine do
           r = subject.retrieve Success
           r.size.should == 1
 
-          errors = subject.extract_errors
+          errors = subject.errors
           errors.should_not be_nil
           errors.size.should == 1
           errors[0].type.should == :no_method
           errors[0].details[:method].should == :foobar
           errors[0].details[:object].should match /#<A:(.+)>/
+          subject.clear_errors
         end
       end
     end
@@ -101,7 +103,7 @@ describe Ruleby::Core::Engine do
           r = subject.retrieve Success
           r.size.should == 0
 
-          errors = subject.extract_errors
+          errors = subject.errors
           errors.should_not be_nil
           errors.size.should == 1
           errors[0].type.should == :proc_call
@@ -109,6 +111,7 @@ describe Ruleby::Core::Engine do
           errors[0].details[:object].should match /#<A:(.+)>/
           errors[0].details[:method].should == :value
           errors[0].details[:value].should == "42"
+          subject.clear_errors
         end
       end
 
@@ -129,7 +132,7 @@ describe Ruleby::Core::Engine do
           r = subject.retrieve Success
           r.size.should == 1
 
-          errors = subject.extract_errors
+          errors = subject.errors
           errors.should_not be_nil
           errors.size.should == 1
           errors[0].type.should == :proc_call
@@ -137,6 +140,7 @@ describe Ruleby::Core::Engine do
           errors[0].details[:object].should match /#<A:(.+)>/
           errors[0].details[:method].should == :value
           errors[0].details[:value].should == "42"
+          subject.clear_errors
         end
       end
     end
