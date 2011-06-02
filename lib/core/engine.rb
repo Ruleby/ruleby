@@ -211,9 +211,9 @@ module Ruleby
     end
     
     def facts
-      @working_memory.facts.collect{|f| f.object}
+      @working_memory.facts.collect{|f| f.object}.select{|f| !f.is_a?(InitialFact)}
     end
-  
+
     # This method id called to add a new fact to working memory
     def assert(object,&block)
       @wm_altered = true
@@ -224,6 +224,10 @@ module Ruleby
     def retract(object,&block)
       @wm_altered = true
       fact_helper(object,:minus,&block)
+
+      # I have mixed feelings about doing this...
+      assert InitialFact.new if facts.empty?
+      object
     end
 
     # This method is called to alter an existing fact.  It is essentially a 
@@ -267,11 +271,11 @@ module Ruleby
     end
 
     def errors
-      @root.errors
+      @root.nil? ? [] : @root.errors
     end
 
     def clear_errors
-      @root.clear_errors
+      @root.clear_errors if @root
     end
 
     def print
