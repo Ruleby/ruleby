@@ -224,9 +224,6 @@ module Ruleby
     def retract(object,&block)
       @wm_altered = true
       fact_helper(object,:minus,&block)
-
-      # I have mixed feelings about doing this...
-      assert InitialFact.new if facts.empty?
       object
     end
 
