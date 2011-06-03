@@ -213,7 +213,13 @@ module Ruleby
       end
       
       def create_property_node(atom)
-        node = atom.kind_of?(EqualsAtom) ? EqualsNode.new(@bucket, atom) : PropertyNode.new(@bucket, atom)
+        if atom.kind_of?(EqualsAtom)
+          node = EqualsNode.new(@bucket, atom)
+        elsif atom.kind_of?(FunctionAtom)
+          node = FunctionNode.new(@bucket, atom)
+        else
+          node = PropertyNode.new(@bucket, atom)
+        end
         @atom_nodes.each {|n| return n if n.shareable? node}
         @atom_nodes.push node
         return node
@@ -401,6 +407,9 @@ module Ruleby
     
     def assert(assertable)
       k = assertable.fact.object.send(@atom.method)
+
+      # TODOwe need to do this for ALL tags if this node is shared
+      assertable.add_tag(@atom.tag, k)
       propagate_assert assertable, (@values[k] ? @values[k] : {})
     rescue NoMethodError => e
       @bucket.add_error Error.new(:no_method, :warn, {
@@ -424,6 +433,7 @@ module Ruleby
 
     def assert(fact)
       k = fact.object.send(@atom.method)
+      # TODO we should create the Assertion object here, not in propogate
       propagate_assert fact, (@values[k] ? @values[k] : {})
     rescue NoMethodError => e
       @bucket.add_error Error.new(:no_method, :warn, {
@@ -459,6 +469,7 @@ module Ruleby
     def assert(assertable)
       begin
         val = assertable.fact.object.send(@atom.method)
+        assertable.add_tag(@atom.tag, val)
       rescue NoMethodError => e
         @bucket.add_error Error.new(:no_method, :warn, {
             :object => assertable.fact.object.to_s,
@@ -489,6 +500,22 @@ module Ruleby
     end   
   end  
   
+  # This node class is used for matching properties of a fact.
+  class FunctionNode < AtomNode
+    def assert(assertable)
+      begin
+        super if @atom.proc.call(assertable.fact.object, *@atom.arguments)
+      rescue Exception => e
+        @bucket.add_error Error.new(:proc_call, :error, {
+            :object => fact.object.to_s,
+            :function => true,
+            :arguments => @atom.arguments,
+            :message => e.message
+        })
+      end
+    end
+  end
+
   # This node class is used to match properties of one with the properties
   # of any other already matched fact.  It differs from the other AtomNodes 
   # because it does not perform any inline matching.  The match method is only
@@ -559,21 +586,22 @@ module Ruleby
   end
 
   class BridgeNode < BaseBridgeNode
-    def propagate_assert(fact)          
-      # create the partial match
-      mr = MatchResult.new
-      mr.is_match = true      
+    def assert(assertable)
+      fact = assertable.fact
+      mr = MatchResult.new(assertable.tags)
+      mr.is_match = true
       mr.recency.push fact.recency
       @pattern.atoms.each do |atom|
         mr.fact_hash[atom.tag] = fact.id
         if atom == @pattern.head
-          # HACK its a pain to have to check for this, can we make it special
+          # TODO once we fix up TypeNode, we won't need this
           mr[atom.tag] = fact.object
-        else
-          mr[atom.tag] = fact.object.send(atom.method) 
+        elsif !mr.key?(atom.tag) and atom.method
+          # TODO it should be possible to get rid of this, and just capture it in the Nodes above
+          mr[atom.tag] = fact.object.send(atom.method)
         end
       end
-      super(MatchContext.new(fact,mr))
+      propagate_assert(MatchContext.new(fact,mr))
     end
   end
 
@@ -960,7 +988,14 @@ module Ruleby
   end
 
   class Assertion < Struct.new(:fact, :paths)
+    def add_tag(tag, value)
+      @tags ||= {}
+      @tags[tag] = value
+    end
 
+    def tags
+      @tags ? @tags : {}
+    end
   end
 
   end

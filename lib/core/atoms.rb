@@ -45,8 +45,32 @@ module Ruleby
              @deftemplate == atom.deftemplate && 
              @proc == atom.proc 
     end
-  end  
-  
+  end
+
+  class FunctionAtom < Atom
+
+    attr_reader :arguments
+
+    def initialize(tag, template, arguments, block)
+      @tag = tag
+      @method = nil
+      @deftemplate = template
+      @arguments = arguments
+      @proc = block
+    end
+
+    def shareable?(atom)
+      FunctionAtom === atom &&
+             @deftemplate == atom.deftemplate &&
+             @arguments == atom.arguments &&
+             @proc == atom.proc
+    end
+
+    def to_s
+      return "#{self.class},#{@deftemplate},#{@arguments.inspect}"
+    end
+  end
+
   # TODO use this
   class BlockAtom < PropertyAtom
     def shareable?(atom)

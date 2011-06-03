@@ -257,6 +257,8 @@ module Ruleby
             arg.deftemplate = deftemplate
             @methods[arg.tag] = arg.name
             atoms.push *arg.build_atoms(@tags, @methods, @when_counter)
+          elsif arg.kind_of? FunctionBuilder
+            atoms.push arg.build_atom(GeneratedTag.new, deftemplate)
           elsif arg == false
             raise 'The != operator is not allowed.'
           else
@@ -317,8 +319,19 @@ module Ruleby
         return ab
       end
     end
-    
-    class BindingBuilder  
+
+    class FunctionBuilder
+      def initialize(args, block)
+        @args = args
+        @function = block
+      end
+
+      def build_atom(tag, template)
+        Core::FunctionAtom.new(tag, template, @args, @function)
+      end
+    end
+
+    class BindingBuilder
       attr_accessor :tag, :method
       def initialize(tag,method=nil)
         @tag = tag

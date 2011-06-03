@@ -28,7 +28,6 @@ describe Ruleby::Core::Engine do
   end
 
   it "should have matched" do
-    subject.print
     subject.errors.should == []
     subject.retrieve(Success).size.should == 1
   end

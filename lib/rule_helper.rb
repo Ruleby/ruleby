@@ -37,7 +37,23 @@ module Ruleby
     end
     
     def c(&block)
-      return lambda(&block)
+      lambda(&block)
+    end
+
+    def f(args, block=nil)
+      if block.nil?
+        if !args.is_a?(Proc)
+          raise "You must provide a Proc!"
+        else
+          Ruleby::Ferrari::FunctionBuilder.new([], args)
+        end
+      else
+        if args.is_a?(Array)
+          Ruleby::Ferrari::FunctionBuilder.new(args, block)
+        else
+          Ruleby::Ferrari::FunctionBuilder.new([args], block)
+        end
+      end
     end
 
     def OR(*args)
