@@ -10,13 +10,14 @@ the forward chaining Rete algorithm. Ruleby provides an internal Domain Specific
 
 Version 
 -------
-0.8.b8
+0.8.b9
 
 Release Notes
 -------------
 
   + New :collect expression
   + Error accumulation (instead of an error in one rule killing all rules)
+  + Added function condtions
 
 Mailing List
 ------------
