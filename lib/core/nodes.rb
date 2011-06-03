@@ -597,8 +597,11 @@ module Ruleby
           # TODO once we fix up TypeNode, we won't need this
           mr[atom.tag] = fact.object
         elsif !mr.key?(atom.tag) and atom.method
-          # TODO it should be possible to get rid of this, and just capture it in the Nodes above
-          mr[atom.tag] = fact.object.send(atom.method)
+          # this is a big hack for the sake of performance.  should really do whats described below
+          unless atom.tag.is_a?(GeneratedTag)
+            # TODO it should be possible to get rid of this, and just capture it in the Nodes above
+            mr[atom.tag] = fact.object.send(atom.method)
+          end
         end
       end
       propagate_assert(MatchContext.new(fact,mr))

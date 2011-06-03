@@ -45,10 +45,7 @@ describe Ruleby::Core::Engine do
     end
 
     it "should have matched" do
-      # right now this is three.  but we should be able to get it down to 1.  The reason is that the nodes don't share
-      # a tag - so it has to access it again when it populates the variables in the BridgeNode
-      @f.times.should == 3
-
+      @f.times.should == 1
       subject.errors.should == []
       subject.retrieve(Success).size.should == 2
     end
