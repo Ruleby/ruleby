@@ -575,7 +575,7 @@ describe Ruleby::Core::Engine do
         it_should_behave_like "one :collect A rule and two As"
       end
 
-      context "with more than one A and a B" do
+      context "with more than one A's first and a B" do
         before do
           subject.assert A.new
           subject.assert A.new
@@ -586,7 +586,7 @@ describe Ruleby::Core::Engine do
         it_should_behave_like "not patterns with [:collect, A] and [:not, B] when there is a B"
       end
 
-      context "with more than one A and a B" do
+      context "with more than one A and a B first" do
         before do
           subject.assert B.new
           subject.assert A.new

@@ -132,30 +132,26 @@ module Ruleby
       def create_atom_nodes(pattern, out_node, side)       
         # TODO refactor this method so it clear and concise
         type_node = create_type_node(pattern)  
-        forked = false
         parent_atom = pattern.atoms[0]
         parent_node = type_node
         
         pattern.atoms[1..-1].each do |atom|
-          # If the network has been forked, we don't want to share nodes anymore
-          forked = true if parent_node.forks?(parent_atom)
-          
           if atom.kind_of?(SelfReferenceAtom)
             node = create_self_reference_node(atom)
           elsif atom.kind_of?(ReferenceAtom)
             node = create_reference_node(atom)
             out_node.ref_nodes.push node
           else
-            node = create_property_node(atom,forked)
+            node = create_property_node(atom)
           end
-          parent_node.add_out_node node, parent_atom
+          parent_node.add_out_node node, pattern.hash, parent_atom
           node.parent_nodes.push parent_node
           parent_node = node
           parent_atom = atom
         end    
   
         bridge_node = create_bridge_node(pattern)
-        parent_node.add_out_node bridge_node, parent_atom
+        parent_node.add_out_node bridge_node, pattern.hash, parent_atom
         bridge_node.parent_nodes.push parent_node
         parent_node = bridge_node
         
@@ -163,11 +159,11 @@ module Ruleby
         
         if out_node.kind_of?(JoinNode)
           adapter_node = create_adapter_node(side)
-          parent_node.add_out_node adapter_node
+          parent_node.add_out_node adapter_node, pattern.hash
           parent_node = adapter_node
         end   
         
-        parent_node.add_out_node out_node            
+        parent_node.add_out_node out_node, pattern.hash
         compare_to_wm(type_node)       
         return type_node     
       end
@@ -188,10 +184,10 @@ module Ruleby
         parent_node = join_node
         if out_node.kind_of?(JoinNode)
           adapter_node = create_adapter_node(side)
-          parent_node.add_out_node adapter_node
+          parent_node.add_out_node adapter_node, pattern.hash
           parent_node = adapter_node
         end         
-        parent_node.add_out_node out_node      
+        parent_node.add_out_node out_node, pattern.hash
         return join_node      
       end
       
@@ -216,9 +212,9 @@ module Ruleby
         end
       end
       
-      def create_property_node(atom,forked)
+      def create_property_node(atom)
         node = atom.kind_of?(EqualsAtom) ? EqualsNode.new(@bucket, atom) : PropertyNode.new(@bucket, atom)
-        @atom_nodes.each {|n| return n if n.shareable? node} unless forked
+        @atom_nodes.each {|n| return n if n.shareable? node}
         @atom_nodes.push node
         return node
       end
@@ -303,38 +299,41 @@ module Ruleby
     attr_reader :child_nodes
     def initialize(bucket)
       super
-      @out_nodes = []   
+      @out_nodes = {}
     end   
     
-    def add_out_node(node,atom=nil)
-      unless @out_nodes.index node
-        @out_nodes.push node
-      end
+    def add_out_node(node, path, atom=nil)
+      @out_nodes[node] = [] unless @out_nodes[node]
+      @out_nodes[node] << path
     end
     
-    # returns true if this node is already being used for the same atom.  That 
-    # is, if it is used again it will fork the network (or the network may 
-    # already be forked).
-    def forks?(atom)
-      return !@out_nodes.empty?
-    end
-    
-    def retract(fact)
-      propagate_retract(fact)
+    def retract(assertable)
+      propagate_retract(assertable)
     end
 
-    def propagate(propagation_method, object_to_propagate, out_nodes=@out_nodes)
-      out_nodes.each do |out_node|
-        begin
-          out_node.send(propagation_method, object_to_propagate)
-        rescue => e
-          @bucket.add_error Error.new(:unknown, :error, {:type => e.class, :message => e.message})
+    def propagate(propagation_method, assertable, out_nodes=@out_nodes)
+      out_nodes.each do |out_node, paths|
+        if assertable.respond_to?(:paths)
+          continuing_paths =  paths & assertable.paths
+          unless continuing_paths.empty?
+            begin
+              out_node.send(propagation_method, Assertion.new(assertable.fact, continuing_paths))
+            rescue => e
+              @bucket.add_error Error.new(:unknown, :error, {:type => e.class, :message => e.message})
+            end
+          end
+        else
+          begin
+            out_node.send(propagation_method, assertable)
+          rescue => e
+            @bucket.add_error Error.new(:unknown, :error, {:type => e.class, :message => e.message})
+          end
         end
       end
     end
     
-    def propagate_retract(fact,out_nodes=@out_nodes)
-      propagate(:retract, fact, out_nodes)
+    def propagate_retract(assertable,out_nodes=@out_nodes)
+      propagate(:retract, assertable, out_nodes)
     end
     
     def assert(assertable)
@@ -384,37 +383,28 @@ module Ruleby
     def initialize(bucket, atom)
       super
       @values = {}
-      @values.default = []
     end
     
-    # returns true if this node is already being used for the same atom.  That 
-    # is, if it is used again it will fork the network (or the network may 
-    # already be forked).
-    def forks?(atom)      
-      k = hash_by(atom)   
-      return !@values[k].empty?
-    end
-    
-    def add_out_node(node,atom) 
+    def add_out_node(node, path, atom)
       k = hash_by(atom)
-      v = @values[k]
-      if v.empty?
-        @values[k] = [node]
-      elsif !v.index node
-        @values[k] = v << node
+      @values[k] = {} if @values[k].nil?
+      if @values[k][node].nil?
+        @values[k][node] = [path]
+      else
+        @values[k][node] << path
       end
     end
     
-    def retract(fact)
-      propagate_retract fact, @values.values.flatten
+    def retract(assertable)
+      propagate_retract assertable, @values.values.inject({}){|p,c| p.merge(c)} #(@values[k] ? @values[k] : {})
     end
     
-    def assert(fact)     
-      k = fact.object.send(@atom.method)
-      propagate_assert fact, @values[k]
+    def assert(assertable)
+      k = assertable.fact.object.send(@atom.method)
+      propagate_assert assertable, (@values[k] ? @values[k] : {})
     rescue NoMethodError => e
       @bucket.add_error Error.new(:no_method, :warn, {
-          :object => fact.object.to_s,
+          :object => assertable.fact.object.to_s,
           :method => e.name,
           :message => e.message
       })
@@ -426,6 +416,31 @@ module Ruleby
   class TypeNode < HashedNode    
     def hash_by(atom) 
       atom.deftemplate.clazz
+    end
+
+    def retract(fact)
+      propagate_retract fact, @values.values.inject({}){|p,c| p.merge(c)} #(@values[k] ? @values[k] : {})
+    end
+
+    def assert(fact)
+      k = fact.object.send(@atom.method)
+      propagate_assert fact, (@values[k] ? @values[k] : {})
+    rescue NoMethodError => e
+      @bucket.add_error Error.new(:no_method, :warn, {
+          :object => fact.object.to_s,
+          :method => e.name,
+          :message => e.message
+      })
+    end
+
+    def propagate(propagation_method, fact, out_nodes=@out_nodes)
+      out_nodes.each do |out_node, paths|
+        begin
+          out_node.send(propagation_method, Assertion.new(fact, paths))
+        rescue => e
+          @bucket.add_error Error.new(:unknown, :error, {:type => e.class, :message => e.message})
+        end
+      end
     end
   end
   
@@ -441,12 +456,12 @@ module Ruleby
   
   # This node class is used for matching properties of a fact.
   class PropertyNode < AtomNode
-    def assert(fact)
+    def assert(assertable)
       begin
-        val = fact.object.send(@atom.method)
+        val = assertable.fact.object.send(@atom.method)
       rescue NoMethodError => e
         @bucket.add_error Error.new(:no_method, :warn, {
-            :object => fact.object.to_s,
+            :object => assertable.fact.object.to_s,
             :method => e.name,
             :message => e.message
         })
@@ -456,7 +471,7 @@ module Ruleby
         super if @atom.proc.call(val)
       rescue Exception => e
         @bucket.add_error Error.new(:proc_call, :error, {
-            :object => fact.object.to_s,
+            :object => assertable.fact.object.to_s,
             :method => @atom.method,
             :value => val.to_s,
             :message => e.message
@@ -511,8 +526,8 @@ module Ruleby
   # This node class is used to match properties of a fact with other properties
   # of itself.  Unlike ReferenceAtom it does perform inline matching. 
   class SelfReferenceNode < AtomNode    
-    def assert(fact)      
-      propagate_assert fact if match fact
+    def assert(assertable)
+      propagate_assert assertable if match assertable.fact
     end
     
     def match(fact)
@@ -532,6 +547,14 @@ module Ruleby
     def initialize(bucket, pattern)
       super(bucket)
       @pattern =  pattern
+    end
+
+    def assert(assertable)
+      propagate_assert(assertable.fact)
+    end
+
+    def retract(assertable)
+      propagate_retract(assertable.fact)
     end
   end
 
@@ -565,7 +588,8 @@ module Ruleby
 #      @collection_memory.recency = 0
     end
 
-    def retract(fact)
+    def retract(assertable)
+      fact = assertable.fact
       propagate_retract(@collection_memory)
       propagate_assert(fact) do
         @collection_memory.object.delete_if {|a| a == fact.object}
@@ -933,6 +957,10 @@ module Ruleby
     def clear_errors
       @errors = []
     end
+  end
+
+  class Assertion < Struct.new(:fact, :paths)
+
   end
 
   end

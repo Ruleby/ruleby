@@ -115,4 +115,15 @@ engine :engine do |e|
   e.assert Patient.new('Tom',:none,false,true,false,false)
   
   e.match
+
+# expect this output:
+#  Measles diagnosed for Bob
+#  Penicillin prescribed for Bob
+#  Allergy diagnosed from rash for Tom
+#  Allergy shot prescribed for Tom
+#  Flu diagnosed for Joe
+#  Bed rest prescribed for Joe
+#  Allergy diagnosed for Fred from spots and lack of measles
+#  Allergy shot prescribed for Fred
+
 end
