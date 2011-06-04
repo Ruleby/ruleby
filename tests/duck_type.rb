@@ -47,18 +47,6 @@ module Duck
       rule [Message, m.status == :HELLO], [Context, :c] do |v|
         v[:c].inc :rule3
       end
-      
-      rule 'where #status == :HELLO', 'Context as :c' do |v|
-        v[:c].inc :rule4
-      end
-      
-      rule 'For each kind of Message where #status == :HELLO', 'Context as :c' do |v|
-        v[:c].inc :rule5
-      end
-      
-      rule 'Message where #status == :HELLO', 'Context as :c' do |v|
-        v[:c].inc :rule6
-      end
     end
   end
   
@@ -85,10 +73,6 @@ module Duck
         assert_equal 3, ctx.get(:rule1)
         assert_equal 2, ctx.get(:rule2)
         assert_equal 1, ctx.get(:rule3)
-        
-        assert_equal 3, ctx.get(:rule4)
-        assert_equal 2, ctx.get(:rule5)
-        assert_equal 1, ctx.get(:rule6)
       end
     end
   end

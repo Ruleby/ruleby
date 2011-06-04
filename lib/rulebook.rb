@@ -12,8 +12,6 @@
 require 'ruleby'
 require 'rule_helper'
 require 'dsl/ferrari'
-require 'dsl/letigre'
-require 'dsl/steel'
 
 module Ruleby
   class Rulebook
@@ -36,15 +34,10 @@ module Ruleby
       @engine.modify fact
     end
     def rule(*args, &block)
-      unless args.empty?
-        name = args[0].kind_of?(Symbol) ? args.shift : GeneratedTag.new
-      end
-    
       if args.empty?
-        # use steel DSL
-        r = Steel::RulebookHelper.new @engine
-        r.rule name, &block
+        raise 'Must provide arguments to rule'
       else
+        name = args[0].kind_of?(Symbol) ? args.shift : GeneratedTag.new
         i = args[0].kind_of?(Hash) ? 1 : 0
         if [Array, Ruleby::Ferrari::OrBuilder, Ruleby::Ferrari::AndBuilder].include? args[i].class
           # use ferrari DSL

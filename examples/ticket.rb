@@ -45,8 +45,8 @@ class TroubleTicketRulebook < Rulebook
     # This is uses the letigre syntax... but we can mix and match syntaxes in 
     # the same rule set.
     rule :New_Ticket, {:priority => 10}, # :duration => 10},
-      'Customer as :c', 
-      'Ticket as :ticket where #customer == #:c #&& #status == :New' do |vars|
+      [Customer, :c],
+      [Ticket, :ticket, {m.customer => :c}, m.status == :New] do |vars|
         puts 'New : ' + vars[:ticket].to_s
     end
     
@@ -74,15 +74,15 @@ class TroubleTicketRulebook < Rulebook
     end
     
     rule :Escalate,
-      'Customer as :c', 
-      'Ticket as :ticket where #customer == #:c #&& #status == :Escalate' do |vars|
+      [Customer, :c],
+      [Ticket, :ticket, {m.customer => :c}, m.status == :Escalate] do |vars|
         puts 'Email : ' + vars[:ticket].to_s    
     end
     
     rule :Done,
-      'Customer as :c', 
-      'Ticket as :ticket where #customer == #:c #&& #status == :Done' do |vars|
-        puts 'Done : ' + vars[:ticket].to_s 
+      [Customer, :c],
+      [Ticket, :ticket, {m.customer => :c}, m.status == :Done] do |vars|
+        puts 'Done : ' + vars[:ticket].to_s
     end
   end
 end

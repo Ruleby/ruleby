@@ -14,17 +14,17 @@ module Ruleby
   module Core
   
   class Atom     
-    attr_reader :tag, :proc, :method, :deftemplate
+    attr_reader :tag, :proc, :method_name, :template
     
-    def initialize(tag, method, deftemplate, &block)
+    def initialize(tag, method_name, template, &block)
       @tag = tag
-      @method = method
-      @deftemplate = deftemplate
+      @method_name = method_name
+      @template = template
       @proc = Proc.new(&block) if block_given?
     end    
     
     def to_s
-      return "#{self.class},#{@tag},#{@method},#{@deftemplate}"
+      "#{self.class},#{@tag},#{@method_name},#{@template}"
     end
   end
   
@@ -36,13 +36,13 @@ module Ruleby
   # So there are no references to other atoms.
   class PropertyAtom < Atom    
     def ==(atom)      
-      return shareable?(atom) && @tag == atom.tag
+      shareable?(atom) && @tag == atom.tag
     end   
     
     def shareable?(atom)
-      return PropertyAtom === atom && 
-             @method == atom.method && 
-             @deftemplate == atom.deftemplate && 
+      PropertyAtom === atom &&
+             @method_name == atom.method_name &&
+             @template == atom.template &&
              @proc == atom.proc 
     end
   end
@@ -53,30 +53,28 @@ module Ruleby
 
     def initialize(tag, template, arguments, block)
       @tag = tag
-      @method = nil
-      @deftemplate = template
+      @method_name = nil
+      @template = template
       @arguments = arguments
       @proc = block
     end
 
     def shareable?(atom)
       FunctionAtom === atom &&
-             @deftemplate == atom.deftemplate &&
+             @template == atom.template &&
              @arguments == atom.arguments &&
              @proc == atom.proc
     end
 
     def to_s
-      return "#{self.class},#{@deftemplate},#{@arguments.inspect}"
+      "#{self.class},#{@template},#{@arguments.inspect}"
     end
   end
 
   # TODO use this
   class BlockAtom < PropertyAtom
     def shareable?(atom)
-      return super &&
-             BlockAtom === atom &&              
-             @proc == atom.proc 
+      super && BlockAtom === atom && @proc == atom.proc
     end
   end
   
@@ -88,15 +86,15 @@ module Ruleby
   # So there are no references to other atoms.
   class EqualsAtom < PropertyAtom
     attr_reader :value
-    def initialize(tag, method, deftemplate, value)
-      super(tag,method,deftemplate)
+    def initialize(tag, method_name, template, value)
+      super(tag,method_name,template)
       @value = value
     end
     
     def shareable?(atom)
-      return EqualsAtom === atom && 
-             @method == atom.method && 
-             @deftemplate == atom.deftemplate 
+      EqualsAtom === atom &&
+             @method_name == atom.method_name &&
+             @template == atom.template
     end
   end
   
@@ -106,16 +104,16 @@ module Ruleby
   # 
   # It is only used at the start of a pattern.
   class HeadAtom < Atom
-    def initialize(tag, deftemplate)   
-      if deftemplate.mode == :equals
-        super tag, :class, deftemplate do |t| t == deftemplate.clazz end
-      elsif deftemplate.mode == :inherits
-        super tag, :class, deftemplate do |t| t === deftemplate.clazz end
+    def initialize(tag, template)
+      if template.mode == :equals
+        super tag, :class, template do |t| t == template.clazz end
+      elsif template.mode == :inherits
+        super tag, :class, template do |t| t === template.clazz end
       end
     end
     
     def shareable?(atom)
-      return HeadAtom === atom && @deftemplate == atom.deftemplate
+      HeadAtom === atom && @template == atom.template
     end
   end
   
@@ -128,8 +126,8 @@ module Ruleby
   class ReferenceAtom < Atom  
     attr_reader :vars
     
-    def initialize(tag, method, vars, deftemplate, &block) 
-      super(tag, method, deftemplate, &block)
+    def initialize(tag, method_name, vars, template, &block)
+      super(tag, method_name, template, &block)
       @vars = vars # list of referenced variable names
     end    
     
@@ -138,21 +136,21 @@ module Ruleby
     end
     
     def ==(atom)      
-      return ReferenceAtom === atom && 
+      ReferenceAtom === atom &&
              @proc == atom.proc && 
              @tag == atom.tag && 
              @vars == atom.vars && 
-             @deftemplate == atom.deftemplate
+             @template == atom.template
     end
     
     def to_s
-      return super + ", vars=#{vars.join(',')}"
+      super + ", vars=#{vars.join(',')}"
     end
   end
   
   # This is an atom that references another atom that is in the same pattern.
   # Note that in a SelfReferenceAtom, the 'vars' argument must be a list of the
-  # *methods* that this atom references (not the variable names)!
+  # *method_names* that this atom references (not the variable names)!
   class SelfReferenceAtom < ReferenceAtom
   end
   
