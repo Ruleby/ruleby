@@ -14,17 +14,17 @@ module Ruleby
   module Core
   
   class Atom     
-    attr_reader :tag, :proc, :method_name, :template
+    attr_reader :tag, :proc, :slot, :template
     
-    def initialize(tag, method_name, template, &block)
+    def initialize(tag, slot, template, &block)
       @tag = tag
-      @method_name = method_name
+      @slot = slot
       @template = template
       @proc = Proc.new(&block) if block_given?
     end    
     
     def to_s
-      "#{self.class},#{@tag},#{@method_name},#{@template}"
+      "#{self.class},#{@tag},#{@slot},#{@template}"
     end
   end
   
@@ -41,7 +41,7 @@ module Ruleby
     
     def shareable?(atom)
       PropertyAtom === atom &&
-             @method_name == atom.method_name &&
+             @slot == atom.slot &&
              @template == atom.template &&
              @proc == atom.proc 
     end
@@ -53,7 +53,7 @@ module Ruleby
 
     def initialize(tag, template, arguments, block)
       @tag = tag
-      @method_name = nil
+      @slot = nil
       @template = template
       @arguments = arguments
       @proc = block
@@ -86,14 +86,14 @@ module Ruleby
   # So there are no references to other atoms.
   class EqualsAtom < PropertyAtom
     attr_reader :value
-    def initialize(tag, method_name, template, value)
-      super(tag,method_name,template)
+    def initialize(tag, slot, template, value)
+      super(tag,slot,template)
       @value = value
     end
     
     def shareable?(atom)
       EqualsAtom === atom &&
-             @method_name == atom.method_name &&
+             @slot == atom.slot &&
              @template == atom.template
     end
   end
@@ -126,8 +126,8 @@ module Ruleby
   class ReferenceAtom < Atom  
     attr_reader :vars
     
-    def initialize(tag, method_name, vars, template, &block)
-      super(tag, method_name, template, &block)
+    def initialize(tag, slot, vars, template, &block)
+      super(tag, slot, template, &block)
       @vars = vars # list of referenced variable names
     end    
     
@@ -150,7 +150,7 @@ module Ruleby
   
   # This is an atom that references another atom that is in the same pattern.
   # Note that in a SelfReferenceAtom, the 'vars' argument must be a list of the
-  # *method_names* that this atom references (not the variable names)!
+  # *slots* that this atom references (not the variable names)!
   class SelfReferenceAtom < ReferenceAtom
   end
   

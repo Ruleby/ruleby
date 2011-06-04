@@ -378,7 +378,7 @@ module Ruleby
     end
     
     def to_s
-      super + " - #{@atom.method_name}"
+      super + " - #{@atom.slot}"
     end
   end
   
@@ -406,7 +406,7 @@ module Ruleby
     end
     
     def assert(assertable)
-      k = assertable.fact.object.send(@atom.method_name)
+      k = assertable.fact.object.send(@atom.slot)
 
       # TODOwe need to do this for ALL tags if this node is shared
       assertable.add_tag(@atom.tag, k)
@@ -432,7 +432,7 @@ module Ruleby
     end
 
     def assert(fact)
-      k = fact.object.send(@atom.method_name)
+      k = fact.object.send(@atom.slot)
       # TODO we should create the Assertion object here, not in propogate
       propagate_assert fact, (@values[k] ? @values[k] : {})
     rescue NoMethodError => e
@@ -468,7 +468,7 @@ module Ruleby
   class PropertyNode < AtomNode
     def assert(assertable)
       begin
-        val = assertable.fact.object.send(@atom.method_name)
+        val = assertable.fact.object.send(@atom.slot)
         assertable.add_tag(@atom.tag, val)
       rescue NoMethodError => e
         @bucket.add_error Error.new(:no_method, :warn, {
@@ -483,7 +483,7 @@ module Ruleby
       rescue Exception => e
         @bucket.add_error Error.new(:proc_call, :error, {
             :object => assertable.fact.object.to_s,
-            :method => @atom.method_name,
+            :method => @atom.slot,
             :value => val.to_s,
             :message => e.message
         })
@@ -522,7 +522,7 @@ module Ruleby
   # invoked by the two input node.
   class ReferenceNode < AtomNode    
     def match(left_context,right_fact)
-      val = right_fact.object.send(@atom.method_name)
+      val = right_fact.object.send(@atom.slot)
       args = [val]            
       match = left_context.match
       @atom.vars.each do |var|
@@ -558,7 +558,7 @@ module Ruleby
     end
     
     def match(fact)
-      args = [fact.object.send(@atom.method_name)]
+      args = [fact.object.send(@atom.slot)]
       @atom.vars.each do |var|
         args.push fact.object.send(var)   
       end   
@@ -596,11 +596,11 @@ module Ruleby
         if atom == @pattern.head
           # TODO once we fix up TypeNode, we won't need this
           mr[atom.tag] = fact.object
-        elsif !mr.key?(atom.tag) and atom.method_name
+        elsif !mr.key?(atom.tag) and atom.slot
           # this is a big hack for the sake of performance.  should really do whats described below
           unless atom.tag.is_a?(GeneratedTag)
             # TODO it should be possible to get rid of this, and just capture it in the Nodes above
-            mr[atom.tag] = fact.object.send(atom.method_name)
+            mr[atom.tag] = fact.object.send(atom.slot)
           end
         end
       end
