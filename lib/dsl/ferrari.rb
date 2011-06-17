@@ -362,12 +362,12 @@ module Ruleby
     class AtomBuilder
       attr_accessor :tag, :name, :bindings, :deftemplate, :block
 
-      EQ_PROC = lambda {|x,y| x == y}
-      GT_PROC = lambda {|x,y| x > y}
-      LT_PROC = lambda {|x,y| x < y}
-      MATCH_PROC = lambda {|x,y| x =~ y}
-      LTE_PROC = lambda {|x,y| x <= y}
-      GTE_PROC = lambda {|x,y| x >= y}
+      EQ_PROC = lambda {|x,y| x and x == y}
+      GT_PROC = lambda {|x,y| x and x > y}
+      LT_PROC = lambda {|x,y| x and x < y}
+      MATCH_PROC = lambda {|x,y| x and x =~ y}
+      LTE_PROC = lambda {|x,y| x and x <= y}
+      GTE_PROC = lambda {|x,y| x and x >= y}
       TRUE_PROC = lambda {|x| true}
 
       def initialize(method_id)
