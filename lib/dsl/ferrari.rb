@@ -316,7 +316,7 @@ module Ruleby
           puts args.class.to_s + ' --- ' + args.to_s
           raise 'Arguments not supported for short-hand conditions' 
         end
-        return ab
+        ab
       end
     end
 
@@ -361,46 +361,59 @@ module Ruleby
     
     class AtomBuilder
       attr_accessor :tag, :name, :bindings, :deftemplate, :block
-      
+
+      EQ_PROC = lambda {|x,y| x == y}
+      GT_PROC = lambda {|x,y| x > y}
+      LT_PROC = lambda {|x,y| x < y}
+      MATCH_PROC = lambda {|x,y| x =~ y}
+      LTE_PROC = lambda {|x,y| x <= y}
+      GTE_PROC = lambda {|x,y| x >= y}
+      TRUE_PROC = lambda {|x| true}
+
       def initialize(method_id)
         @name = method_id
         @deftemplate = nil
         @tag = GeneratedTag.new
         @bindings = []
-        @block = lambda {|x| true}
+        @block = TRUE_PROC
         @child_atom_builders = []
       end
       
       def method_missing(method_id, *args, &block)
         if method_id == :not
-          return NotOperatorBuilder.new(@name)
+          NotOperatorBuilder.new(@name)
         end
       end
       
       def ==(value)
         @atom_type = :equals
-        @value = value
-        create_block value, lambda {|x,y| x == y}, lambda {|x| x == value}; self
+        create_block value, EQ_PROC
+        self
       end
       
       def >(value)
-        create_block value, lambda {|x,y| x > y}, lambda {|x| x > value}; self
+        create_block value, GT_PROC
+        self
       end
       
       def <(value)
-        create_block value, lambda {|x,y| x < y}, lambda {|x| x < value}; self
+        create_block value, LT_PROC
+        self
       end
       
       def =~(value)
-        create_block value, lambda {|x,y| x =~ y}, lambda {|x| x =~ value}; self
+        create_block value, MATCH_PROC
+        self
       end
       
       def <=(value)
-        create_block value, lambda {|x,y| x <= y}, lambda {|x| x <= value}; self
+        create_block value, LTE_PROC
+        self
       end
       
       def >=(value)
-        create_block value, lambda {|x,y| x >= y}, lambda {|x| x >= value}; self
+        create_block value, GTE_PROC
+        self
       end 
       
       def build_atoms(tags,methods,when_id)
@@ -414,16 +427,16 @@ module Ruleby
           if @atom_type == :equals 
             return atoms << Core::EqualsAtom.new(@tag, @name, @deftemplate, @value)
           else
-            return atoms << Core::PropertyAtom.new(@tag, @name, @deftemplate, &@block)
+            return atoms << Core::PropertyAtom.new(@tag, @name, @deftemplate, @value, @block)
           end
         end
         
         if references_self?(tags,when_id)
           bind_methods = @bindings.collect{ |bb| methods[bb.tag] }
-          atoms << Core::SelfReferenceAtom.new(@tag,@name,bind_methods,@deftemplate,&@block)
+          atoms << Core::SelfReferenceAtom.new(@tag,@name,bind_methods,@deftemplate,@block)
         else
           bind_tags = @bindings.collect{ |bb| bb.tag }
-          atoms << Core::ReferenceAtom.new(@tag,@name,bind_tags,@deftemplate,&@block)
+          atoms << Core::ReferenceAtom.new(@tag,@name,bind_tags,@deftemplate,@block)
         end
       end
       
@@ -440,26 +453,27 @@ module Ruleby
           raise 'Binding to self and another pattern in the same condition is not yet supported.'
         end
         
-        return ref_self > 0
+        ref_self > 0
       end
       
-      def create_block(value, ref_block, basic_block)
+      def create_block(value, block)
+        @block = block
         if value && value.kind_of?(BindingBuilder)
           @bindings = [value]
-          @block = ref_block
         elsif value && value.kind_of?(AtomBuilder)
           @child_atom_builders << value
           @bindings = [BindingBuilder.new(value.tag)]
-          @block = ref_block
         else
-          @block = basic_block
+          @value = value
         end
       end
     end
     
     class NotOperatorBuilder < AtomBuilder
+      NOT_PROC = lambda {|x,y| x != y}
       def ==(value)
-        create_block value, lambda {|x,y| x != y}, lambda {|x| x != value}; self
+        create_block value, NOT_PROC
+        self
       end
     end
 

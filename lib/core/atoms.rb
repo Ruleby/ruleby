@@ -16,11 +16,11 @@ module Ruleby
   class Atom     
     attr_reader :tag, :proc, :slot, :template
     
-    def initialize(tag, slot, template, &block)
+    def initialize(tag, slot, template, block)
       @tag = tag
       @slot = slot
       @template = template
-      @proc = Proc.new(&block) if block_given?
+      @proc = block
     end    
     
     def to_s
@@ -34,7 +34,15 @@ module Ruleby
   #   a.person{ |p| p.is_a? Person }
   # 
   # So there are no references to other atoms.
-  class PropertyAtom < Atom    
+  class PropertyAtom < Atom
+
+    attr_reader :value
+
+    def initialize(tag, slot, template, value, block)
+      super(tag,slot,template, block)
+      @value = value
+    end
+
     def ==(atom)      
       shareable?(atom) && @tag == atom.tag
     end   
@@ -43,7 +51,8 @@ module Ruleby
       PropertyAtom === atom &&
              @slot == atom.slot &&
              @template == atom.template &&
-             @proc == atom.proc 
+             @proc == atom.proc &&
+             @value == atom.value
     end
   end
 
@@ -70,13 +79,6 @@ module Ruleby
       "#{self.class},#{@template},#{@arguments.inspect}"
     end
   end
-
-  # TODO use this
-  class BlockAtom < PropertyAtom
-    def shareable?(atom)
-      super && BlockAtom === atom && @proc == atom.proc
-    end
-  end
   
   # This kind of atom is used to match just a single, hard coded value.  
   # For example:
@@ -85,12 +87,12 @@ module Ruleby
   # 
   # So there are no references to other atoms.
   class EqualsAtom < PropertyAtom
-    attr_reader :value
+    EQUAL_PROC  = lambda {|x, y| x == y}
+
     def initialize(tag, slot, template, value)
-      super(tag,slot,template)
-      @value = value
+      super(tag,slot,template, value, EQUAL_PROC)
     end
-    
+
     def shareable?(atom)
       EqualsAtom === atom &&
              @slot == atom.slot &&
@@ -103,12 +105,15 @@ module Ruleby
   #   'For each Person as :p'
   # 
   # It is only used at the start of a pattern.
-  class HeadAtom < Atom
+  class HeadAtom < PropertyAtom
+    HEAD_EQUAL_PROC  = lambda {|t, c| t == c}
+    HEAD_INHERITS_PROC  = lambda {|t, c| t === c}
+
     def initialize(tag, template)
       if template.mode == :equals
-        super tag, :class, template do |t| t == template.clazz end
+        super tag, :class, template, template.clazz, HEAD_EQUAL_PROC
       elsif template.mode == :inherits
-        super tag, :class, template do |t| t === template.clazz end
+        super tag, :class, template, template.clazz, HEAD_INHERITS_PROC
       end
     end
     
@@ -126,8 +131,8 @@ module Ruleby
   class ReferenceAtom < Atom  
     attr_reader :vars
     
-    def initialize(tag, slot, vars, template, &block)
-      super(tag, slot, template, &block)
+    def initialize(tag, slot, vars, template, block)
+      super(tag, slot, template, block)
       @vars = vars # list of referenced variable names
     end    
     

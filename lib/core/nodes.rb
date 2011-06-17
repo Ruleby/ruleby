@@ -222,27 +222,23 @@ module Ruleby
         end
         @atom_nodes.each {|n| return n if n.shareable? node}
         @atom_nodes.push node
-        return node
+        node
       end
       
       def create_self_reference_node(atom)   
         node = SelfReferenceNode.new(@bucket, atom)
         @atom_nodes.push node
-        return node
+        node
       end
       
       def create_reference_node(atom)      
         node = ReferenceNode.new(@bucket, atom)
         @atom_nodes.push node
-        return node
+        node
       end
       
       def create_adapter_node(side)
-        if side == :left
-          return LeftAdapterNode.new(@bucket)
-        else
-          return RightAdapterNode.new(@bucket)
-        end
+        side == :left ? LeftAdapterNode.new(@bucket) : RightAdapterNode.new(@bucket)
       end
       
       # This method is used to update each TypeNode based on the facts in 
@@ -294,7 +290,7 @@ module Ruleby
           end
         end
       end 
-      return true
+      true
     end
   end
   
@@ -468,8 +464,8 @@ module Ruleby
   class PropertyNode < AtomNode
     def assert(assertable)
       begin
-        val = assertable.fact.object.send(@atom.slot)
-        assertable.add_tag(@atom.tag, val)
+        v = assertable.fact.object.send(@atom.slot)
+        assertable.add_tag(@atom.tag, v)
       rescue NoMethodError => e
         @bucket.add_error Error.new(:no_method, :warn, {
             :object => assertable.fact.object.to_s,
@@ -479,12 +475,16 @@ module Ruleby
         return
       end
       begin
-        super if @atom.proc.call(val)
+        if @atom.proc.arity == 1
+          super if @atom.proc.call(v)
+        else
+          super if @atom.proc.call(v, @atom.value)
+        end
       rescue Exception => e
         @bucket.add_error Error.new(:proc_call, :error, {
             :object => assertable.fact.object.to_s,
             :method => @atom.slot,
-            :value => val.to_s,
+            :value => v.to_s,
             :message => e.message
         })
       end
