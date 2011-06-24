@@ -131,7 +131,7 @@ module OrPatterns
         assert_equal 0, ctx.get(:rule19)
         assert_equal 1, ctx.get(:rule18)
         assert_equal 2, ctx.get(:rule17)
-        assert_equal 2, ctx.get(:rule16) 
+        assert_equal 2, ctx.get(:rule16)
         assert_equal 1, ctx.get(:rule14b)
         assert_equal 1, ctx.get(:rule14a)
         assert_equal 1, ctx.get(:rule13b)

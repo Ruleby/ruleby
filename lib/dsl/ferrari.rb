@@ -52,82 +52,26 @@ module Ruleby
       return container
     end
     
-    class RulesContainer < Array      
-      def transform_or(parent)
-        ors = []
-        others = []
-        permutations = 1
-        index = 0
-        parent.each do |child|
-          if(child.or?)
-            permutations *= child.size
-            ors << child
-          else
-            others[index] = child
-          end
-          index = index + 1
-        end
-        # set parent type to or and clear
-        parent.kind = :or
-        parent.clear
-        indexes = []
-        # initialize indexes
-        ors.each do |o|
-          indexes << 0
-        end
-        # create children
-        (1.upto(permutations)).each do |i|
-          and_container = Container.new(:and)
-          
-          mod = 1
-          (ors.size - 1).downto(0) do |j|
-            and_container.insert(0,ors[j][indexes[j]])
-            if((i % mod) == 0)
-              indexes[j] = (indexes[j] + 1) % ors[j].size
-            end
-            mod *= ors[j].size
-          end
-          
-          others.each_with_index do |other, k|
-            if others[k] != nil
-              and_container.insert(k, others[k])
-            end
-          end  
-          # add child to parent        
-          parent.push(and_container)         
-        end
-        parent.uniq!
-      end
-      
-      def handle_branching(container)
+    class RulesContainer < Array
+      def handle_branching
         ands = []
-        container.each do |x|
-          if x.or?
-            x.each do |branch|
-              ands << branch
+        each do |x|
+          f = x.flatten_patterns
+          if f.or?
+            f.each do |o|
+              ands << o
             end
-          elsif x.and?
-            ands << x
           else
-            new_and = Container.new(:and)
-            new_and << x
-            ands << new_and
-          end   
-        end
-        return ands
-      end
-      
-      def build(name,options,engine,&block)
-        rules = []        
-        self.each do |x|          
-          x.process_tree do |c|
-            transform_or(c)     
+            ands << f
           end
         end
-        handle_branching(self).each do |a|
-          rules << build_rule(name, a, options, &block)
+        ands
+      end
+      
+      def build(name, options, engine, &block)
+        handle_branching.map do |container|
+          build_rule(name, container, options, &block)
         end
-        return rules
       end
       
       def build_rule(name, container, options, &block)
@@ -143,8 +87,54 @@ module Ruleby
     class Container < Array
       attr_accessor :kind
       
-      def initialize(kind)
+      def initialize(kind, *vals)
         @kind = kind
+        self.push(*vals)
+      end
+
+      def flatten_patterns
+        if or?
+          patterns = []
+          each do |c|
+            f = c.flatten_patterns
+            if f.and?
+              patterns << f
+            else
+              f.each do |o|
+                # i hope this is safe... not entirely sure
+                patterns << (o.size == 1 ? o.first : o)
+#                patterns << o
+              end
+            end
+          end
+
+          Container.new(:or, *patterns)
+        elsif and?
+          patterns = []
+          or_patterns = []
+          each do |c|
+            child_patterns = c.flatten_patterns
+            if child_patterns.or? and child_patterns.size > 1
+              child_patterns.each do |o|
+                or_patterns << o
+              end
+            else
+              patterns.push(*child_patterns)
+            end
+          end
+          if or_patterns.empty?
+            flat = Container.new(:and)
+            flat.push(*patterns)
+          else
+            flat = Container.new(:or)
+            or_patterns.each do |op|
+              c = Container.new(:and)
+              c.push(op, *patterns)
+              flat << c
+            end
+          end
+          return flat
+        end
       end
       
       def build(builder)
@@ -165,23 +155,17 @@ module Ruleby
       def and?
         return kind == :and
       end
-      
-      def process_tree(&block)
-        has_or_child = false
-        uniq!
-        each do |c|          
-          has_or_child = true if (c.process_tree(&block) or c.or?)
-        end        
-        yield(self) if (has_or_child)
-        return has_or_child
-      end
     end
     
     class PatternContainer
       def initialize(condition)
         @condition = condition
       end
-      
+
+      def flatten_patterns
+        Container.new(:and, self)
+      end
+
       def build(builder)
         builder.when(*@condition)
       end
