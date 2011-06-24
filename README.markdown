@@ -10,12 +10,12 @@ the forward chaining Rete algorithm. Ruleby provides an internal Domain Specific
 
 Version 
 -------
-0.9.b1
+0.9.b2
 
 Release Notes
 -------------
 
-  +
+  + Major improvements to AND and OR in ferrari DSL - especially when nesting them.
 
 Mailing List
 ------------
