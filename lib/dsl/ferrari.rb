@@ -162,6 +162,14 @@ module Ruleby
         @condition = condition
       end
 
+      def size
+        1
+      end
+
+      def first
+        self
+      end
+
       def flatten_patterns
         Container.new(:and, self)
       end
