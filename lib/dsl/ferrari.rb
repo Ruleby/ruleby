@@ -115,9 +115,7 @@ module Ruleby
           each do |c|
             child_patterns = c.flatten_patterns
             if child_patterns.or? and child_patterns.size > 1
-              child_patterns.each do |o|
-                or_patterns << o
-              end
+              or_patterns << child_patterns
             else
               patterns.push(*child_patterns)
             end
@@ -127,9 +125,18 @@ module Ruleby
             flat.push(*patterns)
           else
             flat = Container.new(:or)
-            or_patterns.each do |op|
+
+            x = or_patterns[1..-1]
+            if x.empty?
+              or_pattern_products = or_patterns[0].product()
+            else
+              or_pattern_products = or_patterns[0].product(*x)
+            end
+
+            or_pattern_products.each do |op|
               c = Container.new(:and)
-              c.push(op, *patterns)
+              c.push(*patterns)
+              c.push(*op)
               flat << c
             end
           end
