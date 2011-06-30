@@ -459,34 +459,67 @@ module Ruleby
       end
     end
   end
+
+  class AlphaMemoryNode < AtomNode
+    def initialize(bucket, atom)
+      super(bucket, atom)
+      @memory = Hash.new(DEFAULT)
+    end
+
+    def retract(assertable)
+      forget(assertable)
+      super
+    end
+
+    def remember(assertable)
+      @memory[assertable.fact.object_id]
+    end
+
+    def memorized?(assertable)
+      @memory[assertable.fact.object_id] != DEFAULT
+    end
+
+    def memorize(assertable, value)
+      @memory[assertable.fact.object_id] = value
+    end
+
+    def forget(assertable)
+      @memory.delete(assertable.fact.object_id)
+    end
+  end
   
   # This node class is used for matching properties of a fact.
-  class PropertyNode < AtomNode
+  class PropertyNode < AlphaMemoryNode
     def assert(assertable)
-      begin
-        v = assertable.fact.object.send(@atom.slot)
-        assertable.add_tag(@atom.tag, v)
-      rescue NoMethodError => e
-        @bucket.add_error Error.new(:no_method, :warn, {
-            :object => assertable.fact.object.to_s,
-            :method => e.name,
-            :message => e.message
-        })
-        return
-      end
-      begin
-        if @atom.proc.arity == 1
-          super if @atom.proc.call(v)
-        else
-          super if @atom.proc.call(v, @atom.value)
+      unless memorized?(assertable)
+        begin
+          v = assertable.fact.object.send(@atom.slot)
+          assertable.add_tag(@atom.tag, v)
+          begin
+            if @atom.proc.arity == 1
+              r = @atom.proc.call(v)
+            else
+              r = @atom.proc.call(v, @atom.value)
+            end
+            memorize(assertable, r)
+            super if r
+          rescue Exception => e
+            @bucket.add_error Error.new(:proc_call, :error, {
+                :object => assertable.fact.object.to_s,
+                :method => @atom.slot,
+                :value => v.to_s,
+                :message => e.message
+            })
+          end
+        rescue NoMethodError => e
+          @bucket.add_error Error.new(:no_method, :warn, {
+              :object => assertable.fact.object.to_s,
+              :method => e.name,
+              :message => e.message
+          })
         end
-      rescue Exception => e
-        @bucket.add_error Error.new(:proc_call, :error, {
-            :object => assertable.fact.object.to_s,
-            :method => @atom.slot,
-            :value => v.to_s,
-            :message => e.message
-        })
+      else
+        super if remember(assertable)
       end
     end
   end
@@ -501,10 +534,13 @@ module Ruleby
   end  
   
   # This node class is used conditions that are simply a function, which returns true or false.
-  class FunctionNode < AtomNode
+  class FunctionNode < AlphaMemoryNode
     def assert(assertable)
       begin
-        super if @atom.proc.call(assertable.fact.object, *@atom.arguments)
+        unless memorized?(assertable)
+          memorize(assertable, @atom.proc.call(assertable.fact.object, *@atom.arguments))
+        end
+        super if remember(assertable)
       rescue Exception => e
         @bucket.add_error Error.new(:proc_call, :error, {
             :object => fact.object.to_s,
@@ -546,7 +582,7 @@ module Ruleby
             :message => e.message
         })
       end
-      return MatchResult.new
+      MatchResult.new
     end  
   end
   
@@ -1000,6 +1036,10 @@ module Ruleby
       @tags ? @tags : {}
     end
   end
+
+  class MemoryDefault
+  end
+  DEFAULT = MemoryDefault.new
 
   end
 end
