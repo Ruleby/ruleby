@@ -73,11 +73,11 @@ module Ruleby
       i = 0; while @match.recency[i] == a2.match.recency[i] && i < @match.recency.size-1 && i < a2.match.recency.size-1 
         i += 1
       end
-      return @match.recency[i] <=> a2.match.recency[i]
+      @match.recency[i] <=> a2.match.recency[i]
     end
     
     def ==(a2)
-      return a2 != nil && @action == a2.action && @match == a2.match
+      a2 != nil && @action == a2.action && @match == a2.match
     end
 
     def modify(match)
