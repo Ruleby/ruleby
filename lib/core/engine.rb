@@ -110,12 +110,10 @@ module Ruleby
   # A fact is an object that is stored in working memory.  The rules in the 
   # system will either look for the existence or absence of particular facts.
   class Fact      
-    attr :token, true
-    attr :recency, true    
+    attr :recency, true
     attr_reader :object
     
-    def initialize(object, token)
-      @token = token      
+    def initialize(object)
       @object = object
     end
        
@@ -163,20 +161,19 @@ module Ruleby
     end
     
     def assert_fact(fact)
-      raise 'The fact asserted cannot be nil!' unless fact.object
-      if (fact.token == :plus)
-        fact.recency = @recency
-        @recency += 1
-        @facts.push fact
-        return fact
-      else #if (fact.token == :minus)  
-        i = @facts.index(fact)
-        raise 'The fact to remove does not exist!' unless i
-        existing_fact = @facts[i]
-        @facts.delete_at(i)
-        existing_fact.token = fact.token
-        return existing_fact
-      end
+      raise 'The fact asserted cannot be nil!' if fact.object.nil?
+      fact.recency = @recency
+      @recency += 1
+      @facts.push fact
+      return fact
+    end
+
+    def retract_fact(fact)
+      i = @facts.index(fact)
+      raise 'The fact to remove does not exist!' unless i
+      existing_fact = @facts[i]
+      @facts.delete_at(i)
+      return existing_fact
     end
     
     def print
@@ -281,17 +278,22 @@ module Ruleby
     end 
     
     private 
-      def fact_helper(object, sign=:plus, &block)
-        f = Core::Fact.new object, sign
+      def fact_helper(object, sign=:plus)
+        f = Core::Fact.new object
         yield f if block_given?
-        assert_fact f
+        sign==:plus ? assert_fact(f) : retract_fact(f)
         f
       end   
       
       def assert_fact(fact)
         wm_fact = @working_memory.assert_fact fact      
         @root.assert_fact wm_fact if @root != nil
-      end  
+      end
+
+      def retract_fact(fact)
+        wm_fact = @working_memory.retract_fact fact
+        @root.retract_fact wm_fact if @root != nil
+      end
   end  
 end
 end

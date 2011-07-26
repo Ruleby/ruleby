@@ -34,14 +34,16 @@ module Ruleby
       @terminal_nodes.push terminal_node
     end    
             
-    # When a new fact is added to working memory, or an existing one is removed
-    # this method is called.  It finds any nodes that depend on it, and updates
-    # them accordingly.
+    # When a new fact is added to working memory this method is called.  It finds any nodes that depend on it, and
+    # updates them accordingly.
     def assert_fact(fact) 
-      @type_node and fact.token == :plus ? @type_node.assert(fact) : @type_node.retract(fact) 
-      @inherit_nodes.each do |node|
-        fact.token == :plus ? node.assert(fact) : node.retract(fact) 
-      end
+      @type_node.assert(fact) if @type_node
+      @inherit_nodes.each {|node| node.assert(fact) }
+    end
+
+    def retract_fact(fact)
+      @type_node.retract(fact) if @type_node
+      @inherit_nodes.each {|node| node.retract(fact) }
     end
         
     # Increments the activation counter.  This is just a pass-thru to the static 
@@ -647,7 +649,7 @@ module Ruleby
   class CollectNode < BaseBridgeNode
     def initialize(bucket, pattern)
       super
-      @collection_memory = Fact.new([], :internal)
+      @collection_memory = Fact.new([])
       @should_modify = false
       # not really sure what to do about this. might just need to handle nil's
       # using a puts a limit on how many facts can be asserted before this feature breaks
