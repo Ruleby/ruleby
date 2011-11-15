@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = %q{ruleby}
-  s.version = "0.9.b5"
+  s.version = "0.9.b6"
 
   s.authors = [%q{Joe Kutner}, %q{Matt Smith}]
   s.date = %q{2011-06-16}
