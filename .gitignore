@@ -1,4 +1,5 @@
 pkg
+*.gem
 ruleby.tmproj
 nbproject
 .idea
