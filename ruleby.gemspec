@@ -1,9 +1,8 @@
 Gem::Specification.new do |s|
   s.name = %q{ruleby}
-  s.version = "0.9.b6"
+  s.version = "0.9.b7"
 
   s.authors = [%q{Joe Kutner}, %q{Matt Smith}]
-  s.date = %q{2011-06-16}
   s.description = %q{Ruleby is a rule engine written in the Ruby language. It is a system for executing a set 
 of IF-THEN statements known as production rules. These rules are matched to objects using 
 the forward chaining Rete algorithm. Ruleby provides an internal Domain Specific Language 
