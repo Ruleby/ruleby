@@ -11,7 +11,7 @@
 
 require 'ruleby'
 require 'rule_helper'
-require 'dsl/ferrari'
+require 'dsl/magnum'
 
 module Ruleby
   class Rulebook
@@ -37,19 +37,8 @@ module Ruleby
       if args.empty?
         raise 'Must provide arguments to rule'
       else
-        name = args[0].kind_of?(Symbol) ? args.shift : GeneratedTag.new
-        i = args[0].kind_of?(Hash) ? 1 : 0
-        if [Array, Ruleby::Ferrari::OrBuilder, Ruleby::Ferrari::AndBuilder].include? args[i].class
-          # use ferrari DSL
-          r = Ferrari::RulebookHelper.new @engine
-          r.rule name, *args, &block
-        elsif args[i].kind_of? String
-          # use letigre DSL
-          r = LeTigre::RulebookHelper.new @engine, self
-          r.rule name, *args, &block
-        else
-          raise 'Rule format not recognized.'
-        end
+        r = Ruleby::Magnum::RulebookHelper.new @engine
+        r.rule *args, &block
       end
     end
   end

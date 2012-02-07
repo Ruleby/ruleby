@@ -20,52 +20,24 @@ module Ruleby
       end
       options = args[0].kind_of?(Hash) ? args.shift : {}        
 
-      rules = Ruleby::Ferrari.parse_containers(args, Ruleby::Ferrari::RulesContainer.new).build(name,options,@engine,&block)
+      rules = Ruleby::Magnum.parse_containers(args, Ruleby::Magnum::RulesContainer.new).build(name,options,@engine,&block)
       rules
     end
 
-    def m
-      Ruleby::Ferrari::MethodBuilder.new
+    def where
+      Ruleby::Magnum::WhereBuilder.new(&Proc.new)
     end
 
-    def method
-      m
-    end
+    def name(n)
 
-    def b(variable_name)
-      Ruleby::Ferrari::BindingBuilder.new(variable_name)
-    end
-    
-    def c(&block)
-      lambda(&block)
-    end
-
-    def f(args, block=nil)
-      if block.nil?
-        if !args.is_a?(Proc)
-          raise "You must provide a Proc!"
-        else
-          Ruleby::Ferrari::FunctionBuilder.new([], args)
-        end
-      else
-        if args.is_a?(Array)
-          Ruleby::Ferrari::FunctionBuilder.new(args, block)
-        else
-          Ruleby::Ferrari::FunctionBuilder.new([args], block)
-        end
-      end
     end
 
     def OR(*args)
-      Ruleby::Ferrari::OrBuilder.new args
+      Ruleby::Magnum::OrBuilder.new args
     end
 
     def AND(*args)
-      Ruleby::Ferrari::AndBuilder.new args
-    end
-
-    def __eval__(x)
-      eval(x)
+      Ruleby::Magnum::AndBuilder.new args
     end
     
    end

@@ -14,16 +14,16 @@ include Ruleby
 
 class PropRulebook < Rulebook
   def gt_rules
-    rule [PropFact, :p, m.value > 0] do
+    rule [PropFact, :p, where { self.value > 0}] do
       assert Success.new
     end
   end
 
   def lte_rules
-    rule [PropFact, :p, m.value > 42], [PropCtx, :pc] do
+    rule [PropFact, :p, where { self.value > 42 }], [PropCtx, :pc] do
       # do nothing, just being here helps reproduce a bug
     end
-    rule [PropFact, :p, m.value <= 42], [PropCtx, :pc] do
+    rule [PropFact, :p, where { self.value <= 42}], [PropCtx, :pc] do
       assert Success.new
     end
   end
