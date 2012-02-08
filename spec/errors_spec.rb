@@ -9,13 +9,13 @@ include Ruleby
 
 class ErrorsRulebook < Rulebook
   def rules_with_method_that_doesnt_exist
-    rule [A, :a, m.foobar == 'quack'] do |v|
+    rule [A, :a, where{ self.foobar == 'quack'}] do |v|
       assert Success.new
     end
   end
 
   def rules_that_raise_errors
-    rule [A, :a, m.value(&c{|v| raise ":(" if v == 42; true})] do |v|
+    rule [A, :a, where{ self.value{|v| raise ":(" if v == 42; true}}] do |v|
       assert Success.new
     end
   end

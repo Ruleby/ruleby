@@ -26,12 +26,12 @@ class CollectRulebook < Rulebook
   end
 
   def rules_with_one_pattern_and_other_conditions
-    rule [:collect, A, :a, m.value == "foo"] do |v|
+    rule [:collect, A, :a, where{self.value == "foo"}] do |v|
       assert v[:a]
       assert Success.new
     end
 
-    rule [:collect, B, :b, m.value1 == "foo", m.value2 == "bar"] do |v|
+    rule [:collect, B, :b, where{self.value1 == "foo"; self.value2 == "bar"}] do |v|
       assert v[:b]
       assert Success.new
     end
@@ -105,17 +105,17 @@ class CollectRulebook < Rulebook
   end
 
   def rules_with_binding
-    rule [:collect, A, :a], [B, :b, m.value1(:a, &c{|v1, a| a.size > 0 and a[0].object.value == v1})] do |v|
+    rule [:collect, A, :a], [B, :b, where{(self.value1{|v1, a| a.size > 0 and a[0].object.value == v1}) << :a}] do |v|
       assert Success.new
     end
 
-    rule [:collect, A, :a], [B, :b, m.value1(:a, &c{|v1, a| a.size > 1 and a[0].object.value == v1})] do |v|
+    rule [:collect, A, :a], [B, :b, where{(self.value1{|v1, a| a.size > 1 and a[0].object.value == v1}) << :a}] do |v|
       assert Success.new
     end
   end
 
   def rules_with_chaining_and_binding
-    rule [:collect, A, :a], [B, :b, m.value1(:a, &c{|v1, a| a.size > 0})] do |v|
+    rule [:collect, A, :a], [B, :b, where{(self.value1{|v1, a| a.size > 0}) << :a}] do |v|
       assert v[:a]
       assert Success.new
     end

@@ -196,7 +196,6 @@ module Ruleby
       end
     end
 
-
     class RuleBuilder
       def initialize(name, pattern=nil, action=nil, priority=0) 
         @name = name
@@ -309,7 +308,8 @@ module Ruleby
 
       def method_missing(name, *args, &block)
         raise "Args to where clause method not accepted yet :(" unless args.empty?
-        operation = AtomBuilder.new(name)
+        operation = AtomBuilder.new(name)         
+        operation.block = block if block_given?
         @clauses << operation
         operation
       end
