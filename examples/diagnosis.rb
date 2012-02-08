@@ -49,51 +49,61 @@ end
 
 class DiagnosisRulebook < Ruleby::Rulebook
   def rules
-    rule :Measles, {:priority => 100},
-      [Patient,:p,{m.name=>:n},m.fever==:high,m.spots==true,m.innoculated==true] do |v|
+    name :Measles
+    opts :priority => 100
+    rule [Patient,:p, where { |m|
+        m.name >> :n
+        m.fever==:high
+        m.spots==true
+        m.innoculated==true
+      }] do |v|
         name = v[:n]
         assert Diagnosis.new(name, :measles)
         puts "Measles diagnosed for #{name}"  
     end
     
-    rule :Allergy1,
-      [Patient,:p, {m.name=>:n}, m.spots==true],
-      [:not, Diagnosis, m.name==b(:n), m.diagnosis==:measles] do |v|
+    name :Allergy1
+    rule [Patient,:p, where {self.name >> :n; self.spots==true}],
+      [:not, Diagnosis, where{|m| (m.name==??) << :n; m.diagnosis==:measles}] do |v|
         name = v[:n]
         assert Diagnosis.new(name, :allergy)
         puts "Allergy diagnosed for #{name} from spots and lack of measles"
     end
     
-    rule :Allergy2,
-      [Patient,:p, {m.name=>:n}, m.rash==true] do |v|
+    name :Allergy2
+    rule [Patient,:p, where {self.name >> :n; self.rash==true}] do |v|
         name = v[:n]
         assert Diagnosis.new(name, :allergy)
         puts "Allergy diagnosed from rash for #{name}"
     end     
     
-    rule :Flu,
-      [Patient,:p, {m.name=>:n}, m.sore_throat==true, m.fever(&c{|f| f==:mild || f==:high})] do |v|
+    name :Flu
+    rule [Patient,:p, where {
+        self.name >> :n
+        self.sore_throat==true
+        self.fever {|f| f==:mild || f==:high}
+      }] do |v|
         name = v[:n]
         assert Diagnosis.new(name, :flu)
         puts "Flu diagnosed for #{name}"
     end     
 
-    rule :Penicillin,
-      [Diagnosis, :d, {m.name => :n}, m.diagnosis==:measles] do |v|
+    name :Penicillin
+    rule [Diagnosis, :d, where {self.name >> :n; self.diagnosis==:measles}] do |v|
         name = v[:n]
         assert Treatment.new(name, :penicillin)
         puts "Penicillin prescribed for #{name}"
     end  
     
-    rule :Allergy_pills,
-      [Diagnosis, :d, {m.name => :n}, m.diagnosis==:allergy] do |v|
+    name :Allergy_pills
+    rule [Diagnosis, :d, where {self.name >> :n; self.diagnosis==:allergy}] do |v|
         name = v[:n]
         assert Treatment.new(name, :allergy_shot)
         puts "Allergy shot prescribed for #{name}"
     end
 
-    rule :Bed_rest,
-      [Diagnosis, :d, {m.name => :n}, m.diagnosis==:flu] do |v|
+    name :Bed_rest
+    rule [Diagnosis, :d, where {self.name >> :n; self.diagnosis==:flu}] do |v|
         name = v[:n]
         assert Treatment.new(name, :bed_rest)
         puts "Bed rest prescribed for #{name}"
