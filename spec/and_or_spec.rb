@@ -35,12 +35,12 @@ include Ruleby
 class AndOrRulebook < Rulebook
   def rules
     rule AND(
-             OR([AndOrFact, m.value > 0]),
+             OR([AndOrFact, where {self.value > 0}]),
              OR(
-                 OR([AndOrFact, m.value == 1]),
+                 OR([AndOrFact, where{self.value == 1}]),
                  AND(
-                     AND([AndOrFact, m.value < 1]),
-                     OR([AndOrFact, m.value == nil], [:not, AndOrFact])))) do
+                     AND([AndOrFact, where{self.value < 1}]),
+                     OR([AndOrFact, where{self.value == nil}], [:not, AndOrFact])))) do
       assert Success.new
     end
 
@@ -55,19 +55,23 @@ class AndOrRulebook < Rulebook
   end
 
   def rules2
-    rule OR(AND(OR(OR([AndOrFact, m.value == 1])))) do |v|
+    rule OR(AND(OR(OR([AndOrFact, where{self.value == 1}])))) do |v|
       assert Success.new
     end
   end
 
   def rules3
-    rule OR([AndOrFact, m.value == 1], [AndOrFact, m.value == 2], [AndOrFact, m.value == 3]), [AndOrFact, m.value == 4] do |v|
+    rule OR([AndOrFact, where{self.value == 1}], 
+            [AndOrFact, where{self.value == 2}], 
+            [AndOrFact, where{self.value == 3}]), 
+            [AndOrFact, where{self.value == 4}] do |v|
       assert Success.new
     end
   end
 
   def rules4
-    rule AND([AndOrFact, :a, m.value == 1], [AndOrFact2, :a2, m.value == 2]) do |v|
+    rule AND([AndOrFact, :a, where{self.value == 1}], 
+             [AndOrFact2, :a2, where{self.value == 2}]) do |v|
       raise "nil" if v[:a].nil?
       raise "nil" if v[:a2].nil?
       assert Success.new
@@ -75,23 +79,24 @@ class AndOrRulebook < Rulebook
   end
 
   def rules5
-    rule OR(AND([AndOrFact, :a, {m.value == 1 => :x}], [AndOrFact2, m.value == b(:x)])) do |v|
+    rule OR(AND([AndOrFact, :a, where{(self.value == 1).bind(:x)}], 
+                [AndOrFact2, where{(self.value == ??) << :x}])) do |v|
       assert Success.new
     end
   end
 
   def rules6
     rule OR(
-           AND([:collect, AndOrFact, m.value == 1]),
-           AND([:collect, AndOrFact2, m.value == 2])
+           AND([:collect, AndOrFact, where{self.value == 1}]),
+           AND([:collect, AndOrFact2, where{self.value == 2}])
          ), AND(
-           AND([AndOrFact3, m.value == 65]),
+           AND([AndOrFact3, where{self.value == 65}]),
            OR(
              OR(
-               OR([AndOrFact4, m.value == 4]),
-               AND([AndOrFact5, m.value == 5])
+               OR([AndOrFact4, where{self.value == 4}]),
+               AND([AndOrFact5, where{self.value == 5}])
              ),
-             OR([AndOrFact6, m.value == 6])
+             OR([AndOrFact6, where{self.value == 6}])
            )
          ) do |v|
       assert Success.new

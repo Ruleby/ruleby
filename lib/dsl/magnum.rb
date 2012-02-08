@@ -282,7 +282,6 @@ module Ruleby
           where_builder.clauses.each do |clause|
             # todo clause could besomething else
             #  - could be a hash for binding
-            #  - could be an AND or OR
             #  - function builder?
             if clause.kind_of? AtomBuilder
               clause.deftemplate = deftemplate    
@@ -330,7 +329,6 @@ module Ruleby
     class WhereBuilder   
       def clauses
         @clause_builder.instance_eval do
-          puts 'returning #{@clauses.size} clauses'
           return @clauses
         end
       end
@@ -405,6 +403,23 @@ module Ruleby
         create_block value, GTE_PROC
         self
       end 
+
+      def bind(tag)
+        @tag = tag
+      end
+
+      def >>(tag)
+        bind(tag)
+      end
+
+      def deref(tag)
+        @value = nil
+        @bindings = [BindingBuilder.new(tag)]
+      end
+
+      def <<(tag)
+        deref(tag)
+      end
       
       def build_atoms(tags,methods,when_id)
         atoms = @child_atom_builders.map { |atom_builder|
@@ -449,9 +464,9 @@ module Ruleby
       
       def create_block(value, block)
         @block = block
-        if value && value.kind_of?(BindingBuilder)
-          @bindings = [value]
-        elsif value && value.kind_of?(AtomBuilder)
+        #if value && value.kind_of?(BindingBuilder)
+        #  @bindings = [value]
+        if value && value.kind_of?(AtomBuilder)
           @child_atom_builders << value
           @bindings = [BindingBuilder.new(value.tag)]
         else
