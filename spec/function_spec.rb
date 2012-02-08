@@ -10,37 +10,51 @@ include Ruleby
 
 class FunctionsRulebook < Rulebook
   def rules_with_simple_function
-    rule [FuncFact, :a, f("b", c{|a, b| b == "b"})] do |v|
+    rule [FuncFact, :a, where {|f|
+        f.lambda("b") {|a, b| b == "b"}
+    }] do |v|
       assert Success.new
     end
   end
 
   def rules_with_function_testing_self(arg)
-    rule [FuncFact, :a, f(arg, c{|a, b| a.value == b})] do |v|
+    rule [FuncFact, :a, where {|f|
+        f.lambda(arg) {|a, b| a.value == b}
+    }] do |v|
       assert Success.new
     end
   end
 
   def rules_that_share_a_function
-    func = c{|a, b| a.times += 1; b == "foobar"}
+    func = lambda {|a, b| a.times += 1; b == "foobar"}
 
-    rule [FuncFact, :a, m.value > 1, f("foobar", func)] do |v|
+    rule [FuncFact, :a, where {|f|
+        self.value > 1
+        f.lambda("foobar", &func)
+    }] do |v|
       assert Success.new
     end
 
-    rule [FuncFact, :a, m.value > 2, f("foobar", func)] do |v|
+    rule [FuncFact, where {|f|
+        self.value > 2
+        f.lambda("foobar", &func)
+    }] do |v|
       assert Success.new
     end
   end
 
   def rules_with_many_args_function
-    rule [FuncFact, :a, f([1, 2, 3, 4], c{|a, b, c, d, e| b < e})] do |v|
+    rule [FuncFact, :a, where {|f|
+        f.lambda(1, 2, 3, 4) {|a, b, c, d, e| b < e}
+    }] do |v|
       assert Success.new
     end
   end
 
   def rules_with_no_args_function
-    rule [FuncFact, :a, f(c{|a| !a.nil?})] do |v|
+    rule [FuncFact, :a, where {
+        lambda {|a| !a.nil?}
+    }] do |v|
       assert Success.new
     end
   end

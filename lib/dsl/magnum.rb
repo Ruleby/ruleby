@@ -241,14 +241,13 @@ module Ruleby
         unless args.empty?
           where_builder = args.last
           where_builder.clauses.each do |clause|
-            # todo clause could besomething else
-            #  - could be a hash for binding
-            #  - function builder?
             if clause.kind_of? AtomBuilder
               clause.deftemplate = deftemplate    
               @methods[clause.tag] = clause.name
               atoms.push *clause.build_atoms(@tags, @methods, @when_counter)
-            elsif arg == false
+            elsif clause.kind_of?(FunctionBuilder)
+              atoms.push clause.build_atom(GeneratedTag.new, deftemplate)
+            elsif clause == false
               raise 'The != operator is not allowed.'
             else
               raise "Invalid condition: #{arg}"
@@ -296,11 +295,13 @@ module Ruleby
        
       def initialize
         @clause_builder = ClauseBuilder.new
-        @clause_builder.instance_eval(&Proc.new)
+        @clause_builder.instance_exec(ClauseBuilderProxy.
+            new(@clause_builder), &Proc.new)
       end
     end
     
     class ClauseBuilder
+      # TODO make this a blank slate (with a few exceptions)
 
       def initialize
         @clauses = []
@@ -313,6 +314,22 @@ module Ruleby
         @clauses << operation
         operation
       end
+    end
+
+    class ClauseBuilderProxy
+      def initialize(cb)
+        @clause_builder = cb
+      end
+
+      def lambda(*args)
+        f = FunctionBuilder.new(args, Proc.new)
+        @clause_builder.instance_eval { @clauses << f }
+        f
+      end
+
+      def method_missing(name, *args, &block)
+        @clause_builder.send(name, *args, &block)
+      end 
     end
 
     class AtomBuilder
