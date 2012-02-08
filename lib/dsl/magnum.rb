@@ -437,6 +437,17 @@ module Ruleby
       end
     end
 
+    class FunctionBuilder
+      def initialize(args, block)
+        @args = args
+        @function = block
+      end
+
+      def build_atom(tag, template)
+        Core::FunctionAtom.new(tag, template, @args, @function)
+      end
+    end
+    
     class BindingBuilder
       attr_accessor :tag, :method
       def initialize(tag,method=nil)
