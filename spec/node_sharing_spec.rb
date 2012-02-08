@@ -15,15 +15,15 @@ include Ruleby
 
 class NodeShareRulebook < Rulebook
   def rules
-    rule [NodeShareFact, :n, m.value == 5] do
+    rule [NodeShareFact, :n, where{self.value == 5}] do
       assert Success.new
     end
 
-    rule [NodeShareFact, :n, m.value == 5] do
+    rule [NodeShareFact, :n, where{self.value == 5}] do
       assert Success.new
     end
 
-    rule [NodeShareFact, :n, m.value == 6] do
+    rule [NodeShareFact, :n, where{self.value == 6}] do
       assert Success.new
     end
   end
