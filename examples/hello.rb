@@ -25,14 +25,14 @@ end
 
 class HelloWorldRulebook < Rulebook
   def rules
-    rule [Message, :m, m.status == :HELLO] do |v|
+    rule [Message, :m, where{self.status == :HELLO}] do |v|
       puts v[:m].message
       v[:m].message = "Goodbye world"
       v[:m].status = :GOODBYE
       modify v[:m]
     end
     
-    rule [Message, :m, m.status == :GOODBYE] do |v| 
+    rule [Message, :m, where{self.status == :GOODBYE}] do |v| 
       puts v[:m].message 
     end       
   end

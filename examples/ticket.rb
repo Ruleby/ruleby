@@ -44,44 +44,45 @@ class TroubleTicketRulebook < Rulebook
   
     # This is uses the letigre syntax... but we can mix and match syntaxes in 
     # the same rule set.
-    rule :New_Ticket, {:priority => 10}, # :duration => 10},
-      [Customer, :c],
-      [Ticket, :ticket, {m.customer => :c}, m.status == :New] do |vars|
+    name :New_Ticket
+    opts :priority => 10 # :duration => 10},
+    rule [Customer, :c],
+      [Ticket, :ticket, where{self.customer >> :c; self.status == :New}] do |vars|
         puts 'New : ' + vars[:ticket].to_s
     end
     
     # Now we are using the ferrari syntax.  The rule method can detect which 
     # syntax we are using, and compile accordingly.
-    rule :Silver_Priority, #{:duration => 3000},
-      [Customer, :customer, m.subscription == 'Silver'],
-      [Ticket,:ticket, m.customer == b(:customer), m.status == :New] do |vars|
+    name :Silver_Priority #{:duration => 3000},
+    rule [Customer, :customer, where{self.subscription == 'Silver'}],
+      [Ticket,:ticket, where{(self.customer == ??) << :customer; self.status == :New}] do |vars|
         vars[:ticket].status = :Escalate
         modify vars[:ticket]
     end
     
-    rule :Gold_Priority, #{:duration => 1000},
-      [Customer, :customer, m.subscription == 'Gold'],
-      [Ticket,:ticket, m.customer == b(:customer), m.status == :New] do |vars|
+    name :Gold_Priority #{:duration => 1000},
+    rule [Customer, :customer, where{self.subscription == 'Gold'}],
+      [Ticket,:ticket, where{(self.customer == ??) << :customer; self.status == :New}] do |vars|
         vars[:ticket].status = :Escalate
         modify vars[:ticket]
     end
     
-    rule :Platinum_Priority,
-      [Customer, :customer, m.subscription == 'Platinum'],
-      [Ticket,:ticket, m.customer == b(:customer), m.status == :New] do |vars|
+    name :Platinum_Priority
+    rule [Customer, :customer, where{self.subscription == 'Platinum'}],
+      [Ticket,:ticket, where{(self.customer == ??) << :customer; self.status == :New}] do |vars|
         vars[:ticket].status = :Escalate
         modify vars[:ticket]
     end
     
-    rule :Escalate,
-      [Customer, :c],
-      [Ticket, :ticket, {m.customer => :c}, m.status == :Escalate] do |vars|
+    name :Escalate
+    rule [Customer, :c],
+      [Ticket, :ticket, where{self.customer >> :c; self.status == :Escalate}] do |vars|
         puts 'Email : ' + vars[:ticket].to_s    
     end
     
-    rule :Done,
-      [Customer, :c],
-      [Ticket, :ticket, {m.customer => :c}, m.status == :Done] do |vars|
+    name :Done
+    rule [Customer, :c],
+      [Ticket, :ticket, where{self.customer >> :c; self.status == :Done}] do |vars|
         puts 'Done : ' + vars[:ticket].to_s
     end
   end
