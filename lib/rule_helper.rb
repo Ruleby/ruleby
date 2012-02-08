@@ -13,15 +13,13 @@ require 'core/engine'
 
 module Ruleby
   module RuleHelper
-    def rule(*args, &block) 
-      name = nil
-      unless args.empty?
-        name = args[0].kind_of?(Symbol) ? args.shift : GeneratedTag.new
-      end
-      options = args[0].kind_of?(Hash) ? args.shift : {}        
 
-      rules = Ruleby::Magnum.parse_containers(args, Ruleby::Magnum::RulesContainer.new).build(name,options,@engine,&block)
-      rules
+    def rule(*args, &block)      
+      name, desc, opts = pop_cur_name_desc_opts
+      name ||= GeneratedTag.new
+      raise 'Must provide arguments to rule' if args.empty?      
+      r = Ruleby::Magnum::RulebookHelper.new @engine
+      r.rule name, opts, *args, &block
     end
 
     def where
@@ -29,7 +27,19 @@ module Ruleby
     end
 
     def name(n)
+      @cur_name = n 
+    end
 
+    def desc(d)
+      @cur_desc = d 
+    end
+
+    def opts(o)
+      @cur_opts = o 
+    end
+
+    def reset_class_vars
+      @cur_name, @cur_desc, @cur_opts = "default", '', Hash.new
     end
 
     def OR(*args)
@@ -39,6 +49,15 @@ module Ruleby
     def AND(*args)
       Ruleby::Magnum::AndBuilder.new args
     end
-    
-   end
+
+    # private
+
+    def pop_cur_name_desc_opts
+      name = defined?(@cur_name) ? @cur_opts : GeneratedTag.new
+      desc = defined?(@cur_desc) ? @cur_opts : ""
+      opts = defined?(@cur_opts) ? @cur_opts : {}
+      reset_class_vars
+      return name, desc, opts
+    end
+  end
 end

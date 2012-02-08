@@ -11,56 +11,18 @@
 
 module Ruleby
   module Magnum
-    class RulebookHelper    
-    
+    class RulebookHelper        
       attr_reader :engine
-
- 
-
-      def self.name(n)
-      	@@cur_name = n 
-      end
-
-      def self.desc(d)
-      	@@cur_desc = d 
-      end
-
-      def self.opts(o)
-        @@cur_opts = o 
-      end
-
-      def self.reset_class_vars
-        @@cur_name, @@cur_desc, @@cur_opts = "default", '', {} 
-      end
-      reset_class_vars
 
       def initialize(engine)
         @engine = engine
       end
 
-      def rule(*args, &block) 
-        name, desc, opts = pop_cur_name_desc_opts
-
-        raise "Rule must have a name!" if name.nil?
-
+      def rule(name, opts, *args, &block) 
         rules = Ruleby::Magnum.parse_containers(args, RulesContainer.new).build(name,opts,@engine,&block)
         rules.each do |r|
           engine.assert_rule(r)
         end
-      end
-
-      def where
-        WhereBuilder.new(&Proc.new)
-      end
-
-      private
-
-      def pop_cur_name_desc_opts
-        name = @@cur_name
-        desc = @@cur_desc
-        opts = @@cur_opts
-        RulebookHelper.reset_class_vars
-        return name, desc, opts
       end
     end
 

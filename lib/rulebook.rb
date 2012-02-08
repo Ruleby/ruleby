@@ -33,11 +33,6 @@ module Ruleby
     def modify(fact)
       @engine.modify fact
     end
-    def rule(*args, &block)      
-      raise 'Must provide arguments to rule' if args.empty?      
-      r = Ruleby::Magnum::RulebookHelper.new @engine
-      r.rule *args, &block
-    end
   end
   
   class GeneratedTag  
