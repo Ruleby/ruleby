@@ -79,8 +79,8 @@ class AndOrRulebook < Rulebook
   end
 
   def rules5
-    rule OR(AND([AndOrFact, :a, where{(self.value == 1).bind(:x)}], 
-                [AndOrFact2, where{(self.value == ??) << :x}])) do |v|
+    rule OR(AND([AndOrFact, :a, where{ (self.value == 1) >> :x }], 
+                [AndOrFact2, where{ (self.value == ??) << :x }])) do |v|
       assert Success.new
     end
   end

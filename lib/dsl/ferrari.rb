@@ -103,7 +103,7 @@ module Ruleby
               f.each do |o|
                 # i hope this is safe... not entirely sure
                 patterns << (o.size == 1 ? o.first : o)
-#                patterns << o
+                # patterns << o
               end
             end
           end

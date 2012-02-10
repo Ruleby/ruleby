@@ -21,7 +21,7 @@ module Ruleby
       def rule(name, opts, *args, &block) 
         rules = Ruleby::Magnum.parse_containers(args, RulesContainer.new).build(name,opts,@engine,&block)
         rules.each do |r|
-          engine.assert_rule(r)
+          @engine.assert_rule(r)
         end
       end
     end
@@ -288,7 +288,7 @@ module Ruleby
 
     class WhereBuilder   
       def clauses
-        @clause_builder.instance_eval do
+        @clause_builder.instance_exec do
           return @clauses
         end
       end
@@ -301,14 +301,19 @@ module Ruleby
     end
     
     class ClauseBuilder
-      # TODO make this a blank slate (with a few exceptions)
+      # public_instance_methods.each do |m|
+      #   # maybe we shouldn't be undefing object_id.  What are the implications?  Can we make object_id a
+      #   # pass through to the underlying object's object_id?
+      #   a = [:method_missing, :new, :public_instance_methods, :__send__, :__id__, :object_id, :instance_exec]
+      #   undef_method m.to_sym unless a.include? m.to_sym
+      # end
 
       def initialize
         @clauses = []
       end
 
       def method_missing(name, *args, &block)
-        raise "Args to where clause method not accepted yet :(" unless args.empty?
+        raise "Args to where clause method not accepted yet #{name.inspect}" unless args.empty?
         operation = AtomBuilder.new(name)         
         operation.block = block if block_given?
         @clauses << operation
@@ -328,7 +333,7 @@ module Ruleby
       end
 
       def method_missing(name, *args, &block)
-        @clause_builder.send(name, *args, &block)
+        @clause_builder.__send__(name, *args, &block)
       end 
     end
 
@@ -342,6 +347,7 @@ module Ruleby
       LTE_PROC = lambda {|x,y| x and x <= y}
       GTE_PROC = lambda {|x,y| x and x >= y}
       TRUE_PROC = lambda {|x| true}
+      NOT_PROC = lambda {|x,y| x != y}
 
       def initialize(method_id)
         @name = method_id
@@ -351,10 +357,23 @@ module Ruleby
         @block = TRUE_PROC
         @child_atom_builders = []
       end
+      
+      def method_missing(method_id, *args, &block)
+        if method_id == :not
+          @atom_type = :not
+          self
+        else
+          raise "Invalid rule syntax! #{@name}##{method_id}"
+        end
+      end
 
       def ==(value)
-        @atom_type = :equals
-        create_block value, EQ_PROC
+        if @atom_type == :not
+          create_block value, NOT_PROC          
+        else
+          @atom_type = :equals
+          create_block value, EQ_PROC
+        end 
         self
       end
       
@@ -385,19 +404,21 @@ module Ruleby
 
       def bind(tag)
         @tag = tag
+        self
       end
 
       def >>(tag)
         bind(tag)
       end
 
-      def deref(tag)
+      def deref(*tags)
         @value = nil
-        @bindings = [BindingBuilder.new(tag)]
+        @bindings = tags.map{|tag| BindingBuilder.new(tag) }
+        self
       end
 
-      def <<(tag)
-        deref(tag)
+      def <<(*tags)
+        deref(*tags)
       end
       
       def build_atoms(tags,methods,when_id)
@@ -443,8 +464,8 @@ module Ruleby
       
       def create_block(value, block)
         @block = block
-        #if value && value.kind_of?(BindingBuilder)
-        #  @bindings = [value]
+        # if value && value.kind_of?(BindingBuilder)
+        #   @bindings = [value]
         if value && value.kind_of?(AtomBuilder)
           @child_atom_builders << value
           @bindings = [BindingBuilder.new(value.tag)]

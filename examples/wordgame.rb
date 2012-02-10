@@ -32,34 +32,88 @@ end
 
 class WordGameRulebook < Ruleby::Rulebook
   def rules
-    rule :generate_combos, [String, :a], [Fixnum, :x] do |v|
+    name :generate_combos
+    rule [String, :a], [Fixnum, :x] do |v|
       assert Combination.new(v[:a], v[:x])
     end
     
-    c1 = c{|t,d| ((d+d) % 10) == t }    
-    c2 = c{|r,d,t,l| ((d+d+(10*l)+(10*l)) % 100) == ((10 * r) + t) }
-    c3 = c{|e,d,l,a,r,t| ((d+d+(10*l)+(10*l)+(100*a)+(100*a)) % 1000) == ((100*e)+(10*r)+t) }
-    c4 = c{|b,d,l,a,r,n,e,t| ((d+d+(10*l)+(10*l)+(100*a)+(100*a)+(1000*r)+(1000*n)) % 10000) == ((1000*b)+(100*e)+(10*r)+t) }
-    c5 = c{|g,d,l,a,r,n,e,o,b,t| (d+d+(10*l)+(10*l)+(100*a)+(100*a)+(1000*r)+(1000*n)+(10000*e)+(10000*o)+(100000*g)+(100000*d)) == ((100000*r)+(10000*o)+(1000*b)+(100*e)+(10*r)+t) }
+    c1 = lambda {|t,d| ((d+d) % 10) == t }    
+    c2 = lambda {|r,d,t,l| ((d+d+(10*l)+(10*l)) % 100) == ((10 * r) + t) }
+    c3 = lambda {|e,d,l,a,r,t| ((d+d+(10*l)+(10*l)+(100*a)+(100*a)) % 1000) == ((100*e)+(10*r)+t) }
+    c4 = lambda {|b,d,l,a,r,n,e,t| ((d+d+(10*l)+(10*l)+(100*a)+(100*a)+(1000*r)+(1000*n)) % 10000) == ((1000*b)+(100*e)+(10*r)+t) }
+    c5 = lambda {|g,d,l,a,r,n,e,o,b,t| (d+d+(10*l)+(10*l)+(100*a)+(100*a)+(1000*r)+(1000*n)+(10000*e)+(10000*o)+(100000*g)+(100000*d)) == ((100000*r)+(10000*o)+(1000*b)+(100*e)+(10*r)+t) }
  
-    rule :find_solution, 
-        [Combination, m.a=='D', {m.x => :d}],
-        [Combination, m.a=='T', {m.x.not==b(:d)=>:t}, m.x(:d, &c1)],      
-        [Combination, m.a=='L', {m.x.not==b(:d)=>:l}, m.x.not==b(:t)],
-        [Combination, m.a=='R', {m.x.not==b(:d)=>:r}, m.x.not==b(:t), m.x.not==b(:l), 
-          m.x(:d,:t,:l, &c2)],
-        [Combination, m.a=='A', {m.x.not==b(:d)=>:a}, m.x.not==b(:t), m.x.not==b(:l), m.x.not==b(:r)],
-        [Combination, m.a=='E', {m.x.not==b(:d)=>:e}, m.x.not==b(:t), m.x.not==b(:l), m.x.not==b(:r), 
-          m.x.not==b(:a), m.x(:d,:l,:a,:r,:t, &c3)],
-        [Combination, m.a=='N', {m.x.not==b(:d)=>:n}, m.x.not==b(:t), m.x.not==b(:l), m.x.not==b(:r), 
-          m.x.not==b(:a), m.x.not==b(:e)],
-        [Combination, m.a=='B', {m.x.not==b(:d)=>:b}, m.x.not==b(:t), m.x.not==b(:l), m.x.not==b(:r), 
-          m.x.not==b(:a), m.x.not==b(:e), m.x.not==b(:n), m.x(:d,:l,:a,:r,:n,:e,:t, &c4)],    
-        [Combination, m.a=='O', {m.x.not==b(:d)=>:o}, m.x.not==b(:t), m.x.not==b(:l), m.x.not==b(:r), 
-          m.x.not==b(:a), m.x.not==b(:e), m.x.not==b(:n), m.x.not==b(:b)],    
-        [Combination, m.a=='G', {m.x.not==b(:d)=>:g}, m.x.not==b(:t), m.x.not==b(:l), m.x.not==b(:r), 
-          m.x.not==b(:a), m.x.not==b(:e), m.x.not==b(:n), m.x.not==b(:b), m.x.not==b(:o), 
-          m.x(:d,:l,:a,:r,:n,:e,:o,:b,:t, &c5)] do |v|
+    name :find_solution
+    rule [Combination, where{self.a=='D'; self.x >> :d}],
+        [Combination, where{self.a=='T'; ((self.x.not==??)<<:d)>>:t; self.x(&c1)<<:d}],      
+        [Combination, where{self.a=='L'; ((self.x.not==??)<<:d)>>:l; (self.x.not==??)<<:t}],
+        [Combination, where{
+          self.a=='R'
+          ((self.x.not==??)<<:d)>>:r
+          (self.x.not==??)<<:t
+          (self.x.not==??)<<:l
+          self.x(&c2).<< :d,:t,:l
+          }],
+        [Combination,where{
+          self.a=='A'
+          ((self.x.not==??)<<:d)>>:a
+          (self.x.not==??)<<:t
+          (self.x.not==??)<<:l
+          (self.x.not==??)<<:r
+          }],
+        [Combination, where{ |m|
+          m.a=='E'
+          ((m.x.not==??)<<:d)>>:e 
+          (m.x.not==??)<<:t
+          (m.x.not==??)<<:l
+          (m.x.not==??)<<:r
+          (m.x.not==??)<<:a
+          m.x(&c3).<< :d,:l,:a,:r,:t
+          }],
+        [Combination, where{ |m|
+          m.a=='N'
+          ((m.x.not==??)<<:d)>>:n 
+          (m.x.not==??)<<:t 
+          (m.x.not==??)<<:l 
+          (m.x.not==??)<<:r 
+          (m.x.not==??)<<:a
+          (m.x.not==??)<<:e
+          }],
+        [Combination, where {|m|
+          m.a=='B'
+          ((m.x.not==??)<<:d)>>:b 
+          (m.x.not==??)<<:t 
+          (m.x.not==??)<<:l 
+          (m.x.not==??)<<:r 
+          (m.x.not==??)<<:a 
+          (m.x.not==??)<<:e 
+          (m.x.not==??)<<:n
+          m.x(&c4).<< :d,:l,:a,:r,:n,:e,:t
+          }],    
+        [Combination, where {|m|
+          m.a=='O'
+          ((m.x.not==??)<<:d)>>:o
+          (m.x.not==??)<<:t
+          (m.x.not==??)<<:l
+          (m.x.not==??)<<:r 
+          (m.x.not==??)<<:a 
+          (m.x.not==??)<<:e 
+          (m.x.not==??)<<:n 
+          (m.x.not==??)<<:b
+          }],    
+        [Combination, where {|m|
+          m.a=='G'
+          ((m.x.not==??)<<:d)>>:g 
+          (m.x.not==??)<<:t 
+          (m.x.not==??)<<:l 
+          (m.x.not==??)<<:r 
+          (m.x.not==??)<<:a 
+          (m.x.not==??)<<:e 
+          (m.x.not==??)<<:n 
+          (m.x.not==??)<<:b 
+          (m.x.not==??)<<:o 
+          m.x(&c5).<< :d,:l,:a,:r,:n,:e,:o,:b,:t
+          }] do |v|
       puts "One Solution is:"
       puts "  G = #{v[:g]}"
       puts "  E = #{v[:e]}"

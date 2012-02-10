@@ -21,6 +21,14 @@ module Ruleby
       @engine = engine
       yield self if block_given?
     end
+
+    def rule(*args, &block)      
+      name, desc, opts = pop_cur_name_desc_opts
+      name ||= GeneratedTag.new
+      raise 'Must provide arguments to rule' if args.empty?      
+      r = Ruleby::Magnum::RulebookHelper.new @engine
+      r.rule name, opts, *args, &block
+    end
   
     attr_reader :engine
     

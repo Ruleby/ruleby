@@ -18,8 +18,13 @@ module Ruleby
       name, desc, opts = pop_cur_name_desc_opts
       name ||= GeneratedTag.new
       raise 'Must provide arguments to rule' if args.empty?      
-      r = Ruleby::Magnum::RulebookHelper.new @engine
-      r.rule name, opts, *args, &block
+      # r = Ruleby::Magnum::RulebookHelper.new @engine
+      # r.rule name, opts, *args, &block
+
+
+      rules = Ruleby::Magnum.parse_containers(args, Ruleby::Magnum::RulesContainer.new).
+          build(name,opts,@engine,&block)
+      rules
     end
 
     def where
@@ -57,7 +62,7 @@ module Ruleby
       desc = defined?(@cur_desc) ? @cur_opts : ""
       opts = defined?(@cur_opts) ? @cur_opts : {}
       reset_class_vars
-      return name, desc, opts
+      return name, desc, opts.dup
     end
   end
 end

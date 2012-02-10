@@ -30,39 +30,40 @@ include Ruleby::RuleHelper
 #RULES
 rules = []
 # Bootstrap1
-rules += rule  :Bootstrap1,  {:priority => 4},
-    [Fibonacci, :f, m.value == -1, m.sequence == 1 ] do |vars, engine|  
-      vars[:f].value = 1
-      engine.modify vars[:f]
-      puts vars[:f].sequence.to_s + ' == ' + vars[:f].value.to_s      
-  end  
+name :Bootstrap1
+opts :priority => 4
+rules += rule [Fibonacci, :f, where {|m| m.value == -1; m.sequence == 1 }] do |vars, engine|  
+  vars[:f].value = 1
+  engine.modify vars[:f]
+  puts vars[:f].sequence.to_s + ' == ' + vars[:f].value.to_s      
+end  
 
-  # Recurse
-rules += rule :Recurse, {:priority => 3},
-    [Fibonacci, :f, m.value == -1] do |vars, engine|   
-      f2 = Fibonacci.new(vars[:f].sequence - 1)
-      engine.assert f2
-      puts 'recurse for ' + f2.sequence.to_s
-  end  
+# Recurse
+name :Recurse
+opts :priority => 3
+rules += rule [Fibonacci, :f, where {|m| m.value == -1 }] do |vars, engine|   
+  f2 = Fibonacci.new(vars[:f].sequence - 1)
+  engine.assert f2
+  puts 'recurse for ' + f2.sequence.to_s
+end  
 
-  # Bootstrap2
-rules += rule :Bootstrap2, 
-    [Fibonacci, :f, m.value == -1 , m.sequence == 2] do |vars, engine|    
-      vars[:f].value = 1       
-      engine.modify vars[:f]
-      puts vars[:f].sequence.to_s + ' == ' + vars[:f].value.to_s
-  end
+# Bootstrap2
+rules += rule [Fibonacci, :f, where {|m| m.value == -1; m.sequence == 2}] do |vars, engine|
+  vars[:f].value = 1       
+  engine.modify vars[:f]
+  puts vars[:f].sequence.to_s + ' == ' + vars[:f].value.to_s
+end 
 
-  # Calculate
-rules += rule :Calculate,
-    [Fibonacci,:f1, m.value.not== -1, {m.sequence => :s1}],
-    [Fibonacci,:f2, m.value.not== -1, {m.sequence( :s1, &c{ |s2,s1| s2 == s1 + 1 } ) => :s2}],
-    [Fibonacci,:f3, m.value == -1, m.sequence(:s2, &c{ |s3,s2| s3 == s2 + 1 }) ] do |vars, engine|
-      vars[:f3].value = vars[:f1].value + vars[:f2].value
-      engine.modify vars[:f3]
-      engine.retract vars[:f1]
-      puts vars[:f3].sequence.to_s + ' == ' + vars[:f3].value.to_s
-  end
+# Calculate
+c = lambda {|a,b| a == (b + 1) }
+rules += rule [Fibonacci,:f1, where {self.value.not== -1; self.sequence >> :s1}],
+    [Fibonacci,:f2, where {self.value.not== -1; (self.sequence(&c)<<:s1)>>:s2}],
+    [Fibonacci,:f3, where {self.value == -1; self.sequence(&c)<<:s2}] do |vars, engine|
+  vars[:f3].value = vars[:f1].value + vars[:f2].value
+  engine.modify vars[:f3]
+  engine.retract vars[:f1]
+  puts vars[:f3].sequence.to_s + ' == ' + vars[:f3].value.to_s
+end
 
 # FACTS
 fib1 = Fibonacci.new(150)
