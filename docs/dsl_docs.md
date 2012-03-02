@@ -52,7 +52,7 @@ Let's break this example down.  First, we've added an Author pattern to the rule
 
 Next, let's add some more complex conditions to the pattern. 
 
-## Function conditions
+## Using Function conditions
 
 We can apply generic functions that return true or false to a fact like this
 
