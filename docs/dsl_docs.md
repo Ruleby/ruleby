@@ -35,7 +35,6 @@ We can add multiple conditions to one where clause by additional statements like
 
 After adding several conditions, you may find that the `self` prefix is too verbose.  If so, you can do this:
 
-
     rule [Message, :m, where{ |m|
             m.type == :HELLO
             m.author == "Joe Kutner" }] do |vars|
