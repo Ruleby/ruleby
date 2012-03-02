@@ -33,6 +33,15 @@ We can add multiple conditions to one where clause by additional statements like
       # do stuff
     end
 
+After adding several conditions, you may find that the `self` prefix is too verbose.  If so, you can do this:
+
+
+    rule [Message, :m, where{ |m|
+            m.type == :HELLO
+            m.author == "Joe Kutner" }] do |vars|
+      # do stuff
+    end
+
 Now let's say you don't want a specific author; you just want one of the authors that is also a fact.  We can do this by adding an additional pattern to the rule and binding the two pattern together, like this:
 
     rule [Author, :a], 
@@ -54,9 +63,9 @@ We can apply generic functions that return true or false to a fact like this
       # do stuff
     end
 
-## OR
+## Using Boolean Operators
 
-We can ...
+We can can use the OR operator to conjoin two patterns:
 
     rule OR([Message, :m, where{ self.author == "Joe Kutner" }], 
             [Author, :a, where{ self.name == "Joe Kutner" }]) do |vars|
