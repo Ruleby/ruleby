@@ -15,8 +15,8 @@ module MissManners
 
 class MannersRulebook < Ruleby::Rulebook
   def rules
-    rule :assignFirstSeat, 
-      [Context,:context, m.state == Context::START_UP], 
+    name :assignFirstSeat
+    rule [Context,:context, where{self.state == Context::START_UP}], 
       [Guest,:guest],
       [Count,:count] do |vars|         
         guestName = vars[:guest].name        
@@ -32,14 +32,32 @@ class MannersRulebook < Ruleby::Rulebook
         modify vars[:context]  
     end
     
-    rule :findSeating, 
-      [Context,:context, {m.state == Context::ASSIGN_SEATS => :state}],
-      [Count,:count, {m.value => :countValue}],       
-      [Seating,:seating, {m.path ==  true =>:p, m.id=>:seatingId, m.pid=>:seatingPid, m.rightSeat=>:seatingRightSeat,  m.rightGuestName=>:seatingRightGuestName}],
-      [Guest,:g, {m.name=>:name, m.sex=>:rightGuestSex, m.hobby=>:rightGuestHobby}, m.name == b(:seatingRightGuestName)],
-      [Guest,:lg, {m.name=>:leftGuestName, m.sex=>:sex, m.hobby == b(:rightGuestHobby) => :hobby}, m.sex(:rightGuestSex, &c{|s,rgs| s != rgs} )],         
-      [:~,Path, m.id == b(:seatingId), m.guestName == b(:leftGuestName)],
-      [:~,Chosen, m.id == b(:seatingId), m.guestName == b(:leftGuestName), m.hobby == b(:leftGuestHobby)] do |vars|         
+    name :findSeating
+    rule [Context,:context, where{(self.state == Context::ASSIGN_SEATS) >> :state}],
+      [Count,:count, where{self.value >> :countValue}],       
+      [Seating,:seating, where{ |m|
+          (m.path == true)>>:p
+          m.id>>:seatingId
+          m.pid>>:seatingPid
+          m.rightSeat>>:seatingRightSeat
+          m.rightGuestName>>:seatingRightGuestName}],
+      [Guest,:g, where { |m|
+          m.name >> :name
+          m.sex >> :rightGuestSex
+          m.hobby >> :rightGuestHobby
+          (m.name == ??) << :seatingRightGuestName}],
+      [Guest,:lg, where{ |m| 
+          m.name >> :leftGuestName
+          m.sex >> :sex
+          ((m.hobby == ??) << :rightGuestHobby) >> :hobby
+          (m.sex.not== ??) << :rightGuestSex}],         
+      [:~,Path, where { |m|
+          (m.id == ??) << :seatingId
+          (m.guestName == ??) << :leftGuestName}],
+      [:~,Chosen, where { |m| 
+          (m.id == ??) << :seatingId
+          (m.guestName == ??) << :leftGuestName
+          (m.hobby == ??) << :leftGuestHobby}] do |vars|         
         rightSeat = vars[:seatingRightSeat]
         seatId = vars[:seatingId]
         countValue = vars[:count].value               
@@ -56,11 +74,19 @@ class MannersRulebook < Ruleby::Rulebook
         modify vars[:context]    
     end
     
-    rule :makePath, 
-      [Context,:context, {m.state == Context::MAKE_PATH => :s}],
-      [Seating,:seating, {m.id=>:seatingId, m.pid=>:seatingPid, m.path == false =>:p}],
-      [Path,:path, {m.guestName=>:pathGuestName, m.seat=>:pathSeat}, m.id == b(:seatingPid)],
-      [:~,Path,m.id == b(:seatingId), m.guestName == b(:pathGuestName)] do |vars|
+    name :makePath
+    rule [Context,:context, where {|m| (m.state == Context::MAKE_PATH) >> :s}],
+      [Seating,:seating, where { |m|
+          m.id >> :seatingId
+          m.pid >> :seatingPid
+          (m.path == false) >> :p}],
+      [Path,:path, where { |m| 
+          m.guestName >> :pathGuestName
+          m.seat >> :pathSeat
+          (m.id == ??) << :seatingPid}],
+      [:~,Path, where {|m| 
+          (m.id == ??) << :seatingId
+          (m.guestName == ??) << :pathGuestName}] do |vars|
         path = Path.new(vars[:seatingId],vars[:pathSeat],vars[:pathGuestName])        
         assert path
         puts "make Path : #{path}"    
@@ -71,9 +97,10 @@ class MannersRulebook < Ruleby::Rulebook
     # be nessecary because the 'make path' activations would have more
     # recent facts supporting it.  This is really an error in the Miss Manners
     # benchmark, so it is not considered cheating.
-    rule :pathDone, {:priority => -5},
-      [Context,:context, m.state == Context::MAKE_PATH],
-      [Seating,:seating, m.path == false] do |vars|
+    name :pathDone
+    opts :priority => -5
+    rule [Context,:context, where {self.state == Context::MAKE_PATH}],
+      [Seating,:seating, where{self.path == false}] do |vars|
         vars[:seating].path = true
         modify vars[:seating]        
         vars[:context].state = Context::CHECK_DONE
@@ -81,22 +108,23 @@ class MannersRulebook < Ruleby::Rulebook
         puts "path Done : #{vars[:seating]}"
     end
     
-    rule :areWeDone,
-      [Context,:context, m.state == Context::CHECK_DONE],
-      [LastSeat,:ls, {m.seat => :lastSeat}],
-      [Seating,:seating, m.rightSeat == b(:lastSeat)] do |vars|
+    name :areWeDone
+    rule [Context,:context, where{self.state == Context::CHECK_DONE}],
+      [LastSeat,:ls, where{self.seat >> :lastSeat}],
+      [Seating,:seating, where{(self.rightSeat == ??) << :lastSeat}] do |vars|
         vars[:context].state = Context::PRINT_RESULTS
         modify vars[:context]
     end
     
-    rule :continue, {:priority => -5},
-      [Context,:context,m.state == Context::CHECK_DONE] do |vars|
+    name :continue
+    opts :priority => -5
+    rule [Context,:context, where{self.state == Context::CHECK_DONE}] do |vars|
         vars[:context].state = Context::ASSIGN_SEATS
         modify vars[:context]
     end
     
-    rule :allDone,
-      [Context,:context,m.state == Context::PRINT_RESULTS] do |vars|
+    name :allDone
+    rule [Context,:context, where{self.state == Context::PRINT_RESULTS}] do |vars|
         puts 'All done'
     end
   end

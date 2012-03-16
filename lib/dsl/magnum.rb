@@ -41,7 +41,7 @@ module Ruleby
         elsif arg.kind_of? OrBuilder  
           con << parse_containers(arg.conditions, Container.new(:or), container)
         else
-          raise 'Invalid condition. Must be an OR, AND or an Array.'
+          raise "Invalid condition. Must be an OR, AND or an Array : #{arg.inspect}"
         end
       end
       if container.kind_of?(RulesContainer)
@@ -308,6 +308,10 @@ module Ruleby
       #   undef_method m.to_sym unless a.include? m.to_sym
       # end
 
+      def id
+        method_missing(:id)
+      end
+
       def initialize
         @clauses = []
       end
@@ -322,6 +326,11 @@ module Ruleby
     end
 
     class ClauseBuilderProxy
+
+      def id
+        method_missing(:id)
+      end
+
       def initialize(cb)
         @clause_builder = cb
       end
