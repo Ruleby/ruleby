@@ -9,7 +9,7 @@
 # * Authors: Joe Kutner, Matt Smith
 #
 
-require 'model'
+require './model.rb'
 
 module MissManners
 
