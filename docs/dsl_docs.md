@@ -1,8 +1,8 @@
 # The Ruleby DSL
 
-This document is a description of the new Ruleby DSL called Magnum.  
+This document is a description of the new Ruleby DSL called Magnum.  For now, it's available in the `new_dsl` branch of Ruleby.  If people like it, we'll merge it into `master` such that either Magnum or Ferrari can be used (probably not at the same time though).
 
-## The basics
+## The Basics
 
 Let's say you want to create a rule that matches all Message facts.  It would look like this:
 
@@ -17,15 +17,15 @@ Now let's say you want to have access to the Message fact in the right-hand-side
       # do stuff...
     end
 
-But maybe you only want the rule match messages that were created by a particular person.  You can added conditions to the rule's pattern like this:
+But maybe you only want the rule to match `Message`s that were created by a particular person.  You can add conditions to the rule's pattern like this:
 
     rule [Message, :m, where{ self.author == "Joe Kutner" }] do |vars|
       # do stuff
     end
 
-The reference to `self` in the `where` clause represents the fact object that the rule is being tested against (but don't try to manipulated it, it's really just a proxy).
+The reference to `self` in the `where` clause represents the fact object that the rule is being tested against (but don't try to manipulated it because it's really just a proxy).
 
-We can add multiple conditions to one where clause by additional statements like this:
+We can add multiple conditions to a single `where` clause with additional statements like this:
 
     rule [Message, :m, where{ 
             self.type == :HELLO
@@ -41,7 +41,7 @@ After adding several conditions, you may find that the `self` prefix is too verb
       # do stuff
     end
 
-Now let's say you don't want a specific author; you just want one of the authors that is also a fact.  We can do this by adding an additional pattern to the rule and binding the two pattern together, like this:
+Now let's say you don't want a specific author; you just want one of the authors that is also a fact.  We can do this by adding an additional pattern to the rule and binding the two patterns together, like this:
 
     rule [Author, :a], 
          [Message, :m, where{ (self.author == ??) << :a }] do |vars|
