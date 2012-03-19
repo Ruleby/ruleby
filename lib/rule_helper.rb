@@ -58,8 +58,8 @@ module Ruleby
     # private
 
     def pop_cur_name_desc_opts
-      name = defined?(@cur_name) ? @cur_opts : GeneratedTag.new
-      desc = defined?(@cur_desc) ? @cur_opts : ""
+      name = defined?(@cur_name) ? @cur_name : GeneratedTag.new
+      desc = defined?(@cur_desc) ? @cur_desc : ""
       opts = defined?(@cur_opts) ? @cur_opts : {}
       reset_class_vars
       return name, desc, opts.dup
