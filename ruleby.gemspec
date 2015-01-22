@@ -14,4 +14,5 @@ the forward chaining Rete algorithm. Ruleby provides an internal Domain Specific
   s.require_paths = [%q{lib}]
   s.rubyforge_project = %q{ruleby}
   s.summary = %q{Rete based Ruby Rule Engine}
+  s.license = %q{Ruby}
 end
