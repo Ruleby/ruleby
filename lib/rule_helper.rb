@@ -35,6 +35,8 @@ module Ruleby
     def b(variable_name)
       Ruleby::Ferrari::BindingBuilder.new(variable_name)
     end
+
+    alias_method :binding, :b
     
     def c(&block)
       lambda(&block)
@@ -55,6 +57,8 @@ module Ruleby
         end
       end
     end
+
+    alias_method :condition, :c
 
     def OR(*args)
       Ruleby::Ferrari::OrBuilder.new args
