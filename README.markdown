@@ -8,6 +8,14 @@ of IF-THEN statements known as production rules. These rules are matched to obje
 the forward chaining Rete algorithm. Ruleby provides an internal Domain Specific Language 
 (DSL) for building the productions that make up a Ruleby program.
 
+Test
+-------------
+
+Run test with
+```
+ruby test/test.rb
+```
+
 Version 
 -------
 0.9.b7

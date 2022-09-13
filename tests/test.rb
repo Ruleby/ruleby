@@ -8,13 +8,13 @@
 #
 # * Authors: John Mettraux
 #
-require 'common'
-require 'duck_type'
-require 'self_reference'
-require 'regex'
-require 'gets'
-require 'assert_facts'
-require 'not_patterns'
-require 'or_patterns'
-require 'join_nodes'
-require 'nil'
+require_relative 'common'
+require_relative 'duck_type'
+require_relative 'self_reference'
+require_relative 'regex'
+require_relative 'gets'
+require_relative 'assert_facts'
+require_relative 'not_patterns'
+require_relative 'or_patterns'
+require_relative 'join_nodes'
+require_relative 'nil'
