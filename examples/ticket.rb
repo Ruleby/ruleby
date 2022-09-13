@@ -46,7 +46,7 @@ class TroubleTicketRulebook < Rulebook
     # the same rule set.
     rule :New_Ticket, {:priority => 10}, # :duration => 10},
       [Customer, :c],
-      [Ticket, :ticket, {m.customer => :c}, m.status == :New] do |vars|
+      [Ticket, :ticket, {m.customer => :ticket_customer}, m.customer == b(:c), m.status == :New] do |vars|
         puts 'New : ' + vars[:ticket].to_s
     end
     
@@ -75,13 +75,13 @@ class TroubleTicketRulebook < Rulebook
     
     rule :Escalate,
       [Customer, :c],
-      [Ticket, :ticket, {m.customer => :c}, m.status == :Escalate] do |vars|
+      [Ticket, :ticket, {m.customer => :ticket_customer}, m.customer == b(:c), m.status == :Escalate] do |vars|
         puts 'Email : ' + vars[:ticket].to_s    
     end
     
     rule :Done,
       [Customer, :c],
-      [Ticket, :ticket, {m.customer => :c}, m.status == :Done] do |vars|
+      [Ticket, :ticket, {m.customer => :ticket_cutomer}, m.customer == b(:c), m.status == :Done] do |vars|
         puts 'Done : ' + vars[:ticket].to_s
     end
   end

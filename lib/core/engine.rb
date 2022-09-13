@@ -139,7 +139,10 @@ module Ruleby
   # properties of the activation.
   class RulebyConflictResolver   
     def resolve(agenda) 
-      return agenda.sort
+      # Sorting objects with equal properties will not preserve original sort so
+      # we need to use index since someone could rely on the order of rules
+      # https://stackoverflow.com/a/64793425/287166
+      agenda.sort_by.with_index { |a, i| [a, i] }
     end    
   end
   

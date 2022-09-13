@@ -11,7 +11,7 @@
 
 $LOAD_PATH << File.join(File.dirname(__FILE__), '../lib/')
 require 'ruleby'
-require 'fibonacci_rulebook'
+require_relative 'fibonacci_rulebook'
 class Fibonacci
   def initialize(sequence,value=-1)
     @sequence = sequence
